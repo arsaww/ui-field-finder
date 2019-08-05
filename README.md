@@ -1,6 +1,6 @@
 # ui-field-finder
 
-
+```javascript
 (function () {
 
     var TEXT_FIELD_CSS_QUERY_SELECTOR = "textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
@@ -78,3 +78,4 @@
 
 /* Exemple : */
 document.getElementTextFieldFromLabel("any text");
+```
