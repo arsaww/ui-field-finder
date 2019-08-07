@@ -51,6 +51,28 @@
         }
         return closestField;
     };
+	
+	var getRootInnerText = function(element){
+		var child = element.firstChild;
+		var texts = [];
+		while (child) {
+			if (child.nodeType == 3) {
+				texts.push(child.data);
+			}
+			child = child.nextSibling;
+		}
+		var text = texts.join("");
+		return text && text.trim() ? text.trim() : null;
+	}
+	
+	var getXPathWithOccurrenceIndex = function(element, xPath){
+		var elements = document.getElementsByXpath(xPath);
+		for(var i = 0; i < elements.length; i++){
+			if(elements[i] == element)
+				return xPath + "[" + (i+1) + "]";
+		}
+		return "error, element not found from the following XPath : " + xPath;
+	}
 
     document.getElementsByXpath = function (xpath) {
         var xpathResult = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -73,6 +95,15 @@
         var rect2 = e2.getBoundingClientRect();
         return getRectangleDistance(rect1, rect2);
     };
+	
+	document.getElementUniqueXPath = function(element){
+		var innerText = getRootInnerText(element);
+		var attribute = element.id ? "@id='"+ element.id +"' and " : "";
+		attribute += element.className ? "@class='"+ element.className +"' and " : "";
+		attribute += innerText ? "contains(text(),'"+ innerText +"')" : "";
+		attribute = attribute.endsWith(" and ") ? attribute.slice(0,-5) : attribute ;
+		return getXPathWithOccurrenceIndex(element,"//" + element.tagName + (attribute ? "[" + attribute + "]" : "")); 
+	}
 
 }());
 
