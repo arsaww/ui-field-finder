@@ -69,7 +69,7 @@
 		var elements = document.getElementsByXpath(xPath);
 		for(var i = 0; i < elements.length; i++){
 			if(elements[i] == element)
-				return xPath + "[" + (i+1) + "]";
+				return "(" + xPath + ")[" + (i+1) + "]";
 		}
 		return "error, element not found from the following XPath : " + xPath;
 	}
