@@ -83,11 +83,11 @@
     };
 
     document.getElementTextFieldFromLabel = function (label) {
-        return getClosestField(getLabelElement(label),document.querySelectorAll(TEXT_FIELD_CSS_QUERY_SELECTOR));
+        return getClosestField(document.getLabelElement(label),document.querySelectorAll(TEXT_FIELD_CSS_QUERY_SELECTOR));
     };
 
     document.getElementCheckFieldFromLabel = function (label) {
-        return getClosestField(getLabelElement(label),document.querySelectorAll(CHECK_FIELD_CSS_QUERY_SELECTOR));
+        return getClosestField(document.getLabelElement(label),document.querySelectorAll(CHECK_FIELD_CSS_QUERY_SELECTOR));
     };
 
     document.getDistanceBetweenElement = function (e1, e2) {
