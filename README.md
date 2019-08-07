@@ -6,7 +6,7 @@
     var TEXT_FIELD_CSS_QUERY_SELECTOR = "textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
     var CHECK_FIELD_CSS_QUERY_SELECTOR = "input[type=checkbox],input[type=radio]";
 
-    var getLabelElement = function (label) {
+    document.getLabelElement = function (label) {
         var result = null;
         var array = document.getElementsByXpath("//*[contains(text(),'" + label + "')]");
         for (var i = 0; i < array.length; i++) {
