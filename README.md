@@ -53,16 +53,19 @@
     };
 	
 	var getRootInnerText = function(element){
-		var child = element.firstChild;
-		var texts = [];
-		while (child) {
-			if (child.nodeType == 3) {
-				texts.push(child.data);
+		if(element != null){
+			var child = element.firstChild;
+			var texts = [];
+			while (child) {
+				if (child.nodeType == 3) {
+					texts.push(child.data);
+				}
+				child = child.nextSibling;
 			}
-			child = child.nextSibling;
+			var text = texts.join("");
+			return text && text.trim() ? text.trim() : null;
 		}
-		var text = texts.join("");
-		return text && text.trim() ? text.trim() : null;
+		return null;
 	}
 	
 	var getXPathWithOccurrenceIndex = function(element, xPath){
