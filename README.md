@@ -7,13 +7,19 @@
     var CHECK_FIELD_CSS_QUERY_SELECTOR = "input[type=checkbox],input[type=radio]";
 
     document.getLabelElement = function (label, occurrence) {
-        occurrence = !occurrence ? 1 : occurrence;
+        occurrence = occurrence > 0 ? occurrence : 1;
+        var xPath = "//*[not(self::script) and contains(text(),'" + label + "')]";
         var result = null;
-        var array = document.getElementsByXpath("(//*[contains(text(),'" + label + "')])[" + occurrence + "]");
-        for (var i = 0; i < array.length; i++) {
-            result = !(result == null ||
-                result.innerText.length > array[i].innerText.length ||
-                (result.innerText.length == array[i].innerText.length && result.getBoundingClientRect().y > array[i].getBoundingClientRect().y)) ? result : array[i];
+        var array = document.getElementsByXpath(xPath);
+        var list = [];
+        for (var l = 1; l <= occurrence; l++) {
+            for (var i = 0; i < array.length; i++) {
+                result = !(result == null ||
+                    result.innerText.length > array[i].innerText.length ||
+                    (result.innerText.length == array[i].innerText.length && result.getBoundingClientRect().y > array[i].getBoundingClientRect().y)) && list.indexOf(result) === -1
+                    ? result : array[i];
+            }
+            list.push(result);
         }
         return result;
     };
@@ -43,7 +49,7 @@
                     var distance = document.getDistanceBetweenElement(label, field);
                     console.log(i + " -> " + distance);
                     console.log(field);
-                    if (closestField == null || distance <= closestDistance) {
+                    if (closestField == null || (distance != null && distance <= closestDistance)) {
                         closestField = field;
                         closestDistance = distance;
                     }
@@ -86,18 +92,21 @@
         return array;
     };
 
-    document.getElementTextFieldFromLabel = function (label) {
-        return getClosestField(document.getLabelElement(label), document.querySelectorAll(TEXT_FIELD_CSS_QUERY_SELECTOR));
+    document.getElementTextFieldFromLabel = function (label,occurrence) {
+        return getClosestField(document.getLabelElement(label,occurrence), document.querySelectorAll(TEXT_FIELD_CSS_QUERY_SELECTOR));
     };
 
-    document.getElementCheckFieldFromLabel = function (label) {
-        return getClosestField(document.getLabelElement(label), document.querySelectorAll(CHECK_FIELD_CSS_QUERY_SELECTOR));
+    document.getElementCheckFieldFromLabel = function (label,occurrence) {
+        return getClosestField(document.getLabelElement(label,occurrence), document.querySelectorAll(CHECK_FIELD_CSS_QUERY_SELECTOR));
     };
 
     document.getDistanceBetweenElement = function (e1, e2) {
-        var rect1 = e1.getBoundingClientRect();
-        var rect2 = e2.getBoundingClientRect();
-        return getRectangleDistance(rect1, rect2);
+        if(e1 && e2){
+            var rect1 = e1.getBoundingClientRect();
+            var rect2 = e2.getBoundingClientRect();
+            return getRectangleDistance(rect1, rect2);
+        }
+        return null;
     };
 
     document.getElementUniqueXPath = function (element) {
