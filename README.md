@@ -53,7 +53,7 @@
     };
 	
 	var getRootInnerText = function(element){
-		if(element != null){
+		if(element){
 			var child = element.firstChild;
 			var texts = [];
 			while (child) {
