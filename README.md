@@ -5,7 +5,15 @@
 
         var TEXT_FIELD_CSS_QUERY_SELECTOR = "textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
         var CHECK_FIELD_CSS_QUERY_SELECTOR = "input[type=checkbox],input[type=radio]";
-
+        
+        function xpathStringLiteral(s) {
+            if (s.indexOf('"')===-1)
+                return '"'+s+'"';
+            if (s.indexOf("'")===-1)
+                return "'"+s+"'";
+            return 'concat("'+s.replace(/"/g, '",\'"\',"')+'")';
+        }
+        
         document.getLabelElement = function (label, closest) {
             var nextLabel = null;
             if (label.includes(";")) {
@@ -13,7 +21,7 @@
                 label = split[0];
                 nextLabel = split[1];
             }
-            var xPath = "//*[not(self::script) and contains(text(),'" + label + "')]";
+            var xPath = "//*[not(self::script) and contains(text(),'" + xpathStringLiteral(label) + "')]";
             var result = getMostSignificantClosestLabel(document.getElementsByXpath(xPath),closest);
             closest = closest ? closest : [];
             closest.push(result);
