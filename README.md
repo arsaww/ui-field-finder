@@ -145,7 +145,7 @@
                 var innerText = getRootInnerText(element);
                 var attribute = element.id ? "@id='" + element.id + "' and " : "";
                 attribute += element.className ? "@class='" + element.className + "' and " : "";
-                attribute += innerText ? "contains(text(),'" + innerText + "')" : "";
+                attribute += innerText ? "contains(text()," + xpathStringLiteral(innerText) + ")" : "";
                 attribute = attribute.endsWith(" and ") ? attribute.slice(0, -5) : attribute;
                 return getXPathWithOccurrenceIndex(element, "//" + element.tagName + (attribute ? "[" + attribute + "]" : ""));
             }
