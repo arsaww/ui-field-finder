@@ -21,7 +21,7 @@
                 label = split[0];
                 nextLabel = split[1];
             }
-            var xPath = "//*[not(self::script) and contains(text(),'" + xpathStringLiteral(label) + "')]";
+            var xPath = "//*[not(self::script) and contains(text()," + xpathStringLiteral(label) + ")]";
             var result = getMostSignificantClosestLabel(document.getElementsByXpath(xPath),closest);
             closest = closest ? closest : [];
             closest.push(result);
