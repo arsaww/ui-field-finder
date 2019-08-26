@@ -1,0 +1,8 @@
+html,body{background-color:#f8f8f8;}
+section.main{position: relative;display: block;margin:40px auto;border:1px #ddd solid;width: 700px; padding: 30px 50px;background: #fff; min-height:700px;}
+h1{font-family: monospace;font-weight: normal;color:#8110b4;}
+.CodeMirror.cm-s-default{border:1px #ddd solid;}
+#autocomplete{border:1px #ddd solid;overflow-y: auto;max-height:300px;}
+#autocomplete span{cursor:pointer;display:block;font-family: monospace;font-size:13px;color:#00f;line-height:20px;vertical-align: middle;}
+#autocomplete span:hover{background-color:#E6FCFF;}
+#copy_btn {position:absolute;top:392px;right:50px;}

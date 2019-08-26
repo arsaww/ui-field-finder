@@ -1,0 +1,121 @@
+<html>
+<head>
+    <script src="codemirror.js"></script>
+    <link rel="stylesheet" href="codemirror.css">
+    <link rel="stylesheet" href="main.css">
+    <script src="mode_js.js"></script>
+    <script src="sentences.js"></script>
+</head>
+<body>
+<section class="main">
+    <h1># Actions to be executed</h1>
+    <div id="feature"></div>
+    <br/>
+    <h1># Autocomplete syntax helper [CTRL+SPACE]</h1>
+    <div id="autocomplete"></div>
+    <textarea id="copy" style="display: none;"></textarea>
+    <button id="copy_btn" onclick="copy()">cc</button>
+</section>
+<script>
+
+        var CURRENT_LINE_NUMBER = null;
+        var CURRENT_LINE_TEXT = null;
+
+        var copy = function(){
+            document.getElementById('copy').style.display = 'block';
+            var lines = cm.getValue().split('\n');
+            var finalText = "";
+            for(var i = 0;i < lines.length;i++){
+                if(i === 0){
+                    finalText += "Given " + lines[i] + "\n";
+                }else if (i === 1){
+                    finalText += "When " + lines[i] + "\n";
+                }else if (i === 2){
+                    finalText += "Then " + lines[i] + "\n";
+                }else{
+                    finalText += "And " + lines[i] + "\n";
+                }
+            }
+            document.getElementById('copy').value = finalText;
+            document.getElementById('copy').select();
+            document.execCommand("copy");
+            document.getElementById('copy').style.display = 'none';
+        };
+
+        var replaceLine = function(e){
+            var doc = cm.getDoc();
+            var start = {line: CURRENT_LINE_NUMBER, ch: 0};
+            var end = {line: CURRENT_LINE_NUMBER, ch: CURRENT_LINE_TEXT.length};
+            doc.replaceRange(e.innerText, start,end);
+            document.getElementById("autocomplete").innerHTML = "";
+        };
+
+        var saveLine = function(){
+            var doc = cm.getDoc();
+            var cursor = doc.getCursor();
+            CURRENT_LINE_NUMBER = cursor.line;
+            CURRENT_LINE_TEXT = doc.getLine(cursor.line);
+        };
+
+        function formatSentences(sentences){
+            for(var i = 0; i < sentences.length; i++){
+                sentences[i] = sentences[i].toLowerCase();
+            }
+            return sentences;
+        }
+
+        var getMatchingSentences = function(){
+            var wordArray = getLineTextArrayWithoutValues(CURRENT_LINE_TEXT);
+            var matchingSentences = [];
+            var formattedSentences = formatSentences(ALLOWED_SENTENCES.slice(0));
+            if(wordArray.length == 0 || (wordArray.length == 1 && wordArray[0] === "")){
+                matchingSentences = ALLOWED_SENTENCES.slice(0);
+            }else{
+                for(var i = 0 ; i < ALLOWED_SENTENCES.length; i++){
+                    var newWordArray = getLineTextArrayWithoutValues(formattedSentences[i]);
+                    var matchingSentence = true;
+                    for(var j = 0; j < wordArray.length; j++){
+                        if(!newWordArray.includes(wordArray[j].toLowerCase())){
+                            matchingSentence = false;
+                            break;
+                        }
+                    }
+                    if(matchingSentence){
+                        matchingSentences.push(ALLOWED_SENTENCES[i]);
+                    }
+                }
+            }
+            return matchingSentences;
+        };
+
+        var autoComplete = function(){
+            saveLine();
+            var sentences = getMatchingSentences();
+            var content = "";
+            for(var i = 0 ; i < sentences.length; i ++){
+                content += "<span onclick='replaceLine(this)'>" + sentences[i] + "</span>";
+            }
+            document.getElementById('autocomplete').innerHTML = content;
+        };
+
+        var getLineTextArrayWithoutValues = function(lineText){
+            lineText = lineText.replace(/(\".*?\")/g,"");
+            lineText = lineText.replace(/ +/g, " ");
+            lineText = lineText.replace(/^ /, "");
+            lineText = lineText.replace(/ $/, "");
+            return lineText.split(/\ /g);
+        };
+
+        var cm = CodeMirror(document.getElementById("feature"), {
+                value: "",
+                mode: "javascript",
+                lineNumbers: true,
+                extraKeys: {
+                    "Ctrl-Space": autoComplete
+                }
+            }
+        );
+
+</script>
+</body>
+</html>
