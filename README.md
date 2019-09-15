@@ -2,6 +2,7 @@
 
 ```javascript
 
+var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
 (function () {
 
         var DRAW_UTIL = {
@@ -69,7 +70,7 @@
                 }
                 return drawingArea;
             },
-            drawZone: function (zone, border) {
+            drawZone: function (zone, border, coverage, distance) {
                 var area = DRAW_UTIL.getDrawingArea();
                 var e = area.appendChild(document.createElement("DIV"));
                 e.style.color = "#333";
@@ -81,6 +82,20 @@
                 e.style.left = zone.left + "px";
                 e.style.width = zone.width + "px";
                 e.style.boxSizing = "border-box";
+                if(coverage || distance){
+                    var i = area.appendChild(document.createElement("DIV"));
+                    i.style.color = "black";
+                    i.style.fontFamily = "monospace";
+                    i.style.fontSize = "9px";
+                    i.style.background = "white";
+                    i.style.position = "absolute";
+                    i.style.border = "1px "+ border +" dashed";
+                    i.style.top = ((zone.source.y+30) < window.innerHeight ? zone.source.y : window.innerHeight - 30) + "px";
+                    i.style.left = ((zone.source.x+250) < window.innerWidth ? zone.source.x : window.innerWidth - 250) + "px";
+                    i.style.padding = "2px";
+                    i.style.zIndex = "9999999999999999";
+                    i.innerHTML = "Target is " + coverage + "% covered by zone <br /> There is "+ distance + "px distance from the zone source";
+                }
             },
             drawAlgorithmSelection: function (choices, finalResult) {
                 if (finalResult) {
@@ -88,10 +103,10 @@
                         for (var i = 0; i < finalResult.zoneIncludes.length; i++) {
                             var zi = finalResult.zoneIncludes[i];
                             if (zi.element) {
-                                DRAW_UTIL.drawZone(zi.zone, "#00E0FF");
+                                DRAW_UTIL.drawZone(zi.zone, "#00E0FF", zi.coverage, zi.distance);
                                 DRAW_UTIL.drawElement(zi.element, "#00E0FF", "#00E0FFAA");
                             } else {
-                                DRAW_UTIL.drawZone(zi.zone, "#0000FF");
+                                DRAW_UTIL.drawZone(zi.zone, "#0000FF", zi.coverage, zi.distance);
                             }
                         }
                     }
@@ -104,7 +119,7 @@
                     for (var i = 0; i < resultList.length; i++) {
                         var r = resultList[i];
                         if (i === 0 && r.zoneIncludes > 0) {
-                            for(var j = 0; j < r.zoneIncludes.length; j++){
+                            for (var j = 0; j < r.zoneIncludes.length; j++) {
                                 var zi = r.zoneIncludes[j];
                                 DRAW_UTIL.drawZone(zi.zone, "#ff7600");
                                 DRAW_UTIL.drawElement(zi.element, "#ff0000", "#ff000033");
@@ -166,7 +181,7 @@
                         zone: zone,
                         element: elementZone ? elementZone : null,
                         coverage: Math.round((((bottom - top) * (right - left)) * 100) / (r.width * r.height)),
-                        distance: Math.round(Math.sqrt(Math.pow(zone.source.x - (r.width / 2), 2) + Math.pow(zone.source.y - (r.height / 2), 2)))
+                        distance: Math.round(Math.sqrt(Math.pow(zone.source.x - ((r.width / 2)+ r.left), 2) + Math.pow(zone.source.y - ((r.height / 2)+ r.top), 2)))
                     };
                 }
                 return null;
@@ -272,13 +287,11 @@
                         inclusion.coverage += result.zoneIncludes[i].coverage;
                     }
                 }
-                console.log(inclusion);
                 return inclusion;
             }
-
         };
 
-        var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
+
         var CHECK_FIELD_CSS_QUERY_SELECTOR = "input[type=checkbox],input[type=radio]";
 
         var DEFAULT_NEXT_DISTANCE = 350;
@@ -308,23 +321,28 @@
             return document.getElementsByXpath("//*[not(self::script) and not(self::option) and contains(text()," + xpathStringLiteral(label) + ")]");
         };
 
-        document.getLabelElements = function (label, closests, distance) {
+        document.getLabelElements = function (label, querySelector, closests, distance) {
             distance = distance ? distance : DEFAULT_NEXT_DISTANCE;
             var nextLabel = null;
-            if (label.includes(";")) {
-                var split = label.split(/;(.+)/);
-                label = split[0];
-                nextLabel = split[1];
+            var candidates = null;
+            if (label) {
+                if (label.includes(";")) {
+                    var split = label.split(/;(.+)/);
+                    label = split[0];
+                    nextLabel = split[1];
+                }
+                candidates = getCandidatesByXPathLabel(label).concat(getInputsByVisualValue(label));
+            } else if (querySelector) {
+                candidates = document.querySelectorAll(querySelector);
+                querySelector = null;
             }
-            var candidates = getCandidatesByXPathLabel(label).concat(getInputsByVisualValue(label));
             var result = getMostSignificantsClosestsLabel(candidates, closests, distance);
-            if (nextLabel) {
-                return document.getLabelElements(nextLabel, result, distance);
+            if (nextLabel || querySelector) {
+                return document.getLabelElements(nextLabel, querySelector, result, distance);
             } else {
                 return result;
             }
         };
-
 
         var getMostSignificantsClosestsLabel = function (candidates, closests, distance) {
             distance = distance ? distance : DEFAULT_NEXT_DISTANCE;
@@ -368,9 +386,11 @@
 
         var initClosestsCandidatesArray = function (candidates) {
             var closests = [];
-            for (var i = 0; i < candidates.length; i++) {
-                if (isVisible(candidates[i])) {
-                    closests.push([candidates[i]]);
+            if (candidates) {
+                for (var i = 0; i < candidates.length; i++) {
+                    if (isVisible(candidates[i])) {
+                        closests.push([candidates[i]]);
+                    }
                 }
             }
             return closests;
@@ -449,7 +469,7 @@
         };
 
         document.getElementByOptions = function (options) {
-            var r1 = document.getLabelElements(options["label"]);
+            var r1 = document.getLabelElements(options["label"], options["tag"]);
             var resultList = ZONE_UTIL.initZoneIncludeElements(r1);
             var pz = ZONE_UTIL.getPageZone(options.pageZone);
             var finalResult = null;
@@ -478,23 +498,17 @@ var area = {
     height: 0,
     source: {x: 0, y: 0}
 };
-/*var options = {
+
+var options = {
     "label": "Cat;Hello",
     "tag": null,
     "precisions": [{label: "Hello;Hello input 1", position: "top-left", distance: null}],
     "pageZone": "bottom-right",
     "record": true,
     "pageZoneFirst": true
-};*/
-var options = {
-    "label": "XRP",
-    "tag": null,
-    "precisions": [{label: "Hong Kong", position: "top-left", distance: null}],
-    "pageZone": "left",
-    "showAlgorithm": true
 };
 
-document.getElementByOptions(options);
 
+document.getElementByOptions(options);
 
 ```
