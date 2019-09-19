@@ -1,11 +1,10 @@
 # ui-field-finder
 
 ```javascript
-
-var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
 (function () {
-
+        var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
         var DRAW_UTIL = {
+            ARROW_COUNTER : 0,
             drawElementsArray: function (elements, border, background, link) {
                 if (elements && elements.length > 0) {
                     for (var i = 0; i < elements.length; i++) {
@@ -33,6 +32,7 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                 e.style.boxSizing = "border-box";
             },
             drawLineBetweenElements: function (e1, e2, color) {
+                DRAW_UTIL.ARROW_COUNTER = DRAW_UTIL.ARROW_COUNTER+1;
                 var rect1 = e1.getBoundingClientRect();
                 var rect2 = e2.getBoundingClientRect();
                 var area = DRAW_UTIL.getDrawingArea();
@@ -42,7 +42,7 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                 e.style.position = "absolute";
                 e.innerHTML = "" +
                     "<defs>\n" +
-                    "    <marker id=\"arrow\" markerWidth=\"10\" markerHeight=\"10\" refX=\"6\" refY=\"3\" orient=\"auto\" markerUnits=\"strokeWidth\" viewBox=\"0 0 15 15\">\n" +
+                    "    <marker id=\"arrow-"+ DRAW_UTIL.ARROW_COUNTER +"\" markerWidth=\"10\" markerHeight=\"10\" refX=\"6\" refY=\"3\" orient=\"auto\" markerUnits=\"strokeWidth\" viewBox=\"0 0 15 15\">\n" +
                     "      <path d=\"M0,0 L0,6 L9,3 z\" fill=\"" + color + "\" />\n" +
                     "    </marker>\n" +
                     "</defs>\n";
@@ -51,7 +51,7 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                 line.setAttributeNS(null, "y1", "" + (rect1.y + (rect1.height / 2)));
                 line.setAttributeNS(null, "x2", "" + (rect2.x + (rect2.width / 2)));
                 line.setAttributeNS(null, "y2", "" + (rect2.y + (rect2.height / 2)));
-                line.setAttributeNS(null, "marker-end", "url(#arrow)");
+                line.setAttributeNS(null, "marker-end", "url(#arrow-"+DRAW_UTIL.ARROW_COUNTER+")");
                 line.style.stroke = color;
                 line.style.strokeWidth = "2";
             },
@@ -87,7 +87,7 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                     i.style.color = "black";
                     i.style.fontFamily = "monospace";
                     i.style.fontSize = "9px";
-                    i.style.background = "white";
+                    i.style.background = "#d6faff";
                     i.style.position = "absolute";
                     i.style.border = "1px "+ border +" dashed";
                     i.style.top = ((zone.source.y+30) < window.innerHeight ? zone.source.y : window.innerHeight - 30) + "px";
@@ -97,22 +97,25 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                     i.innerHTML = "Target is " + coverage + "% covered by zone <br /> There is "+ distance + "px distance from the zone source";
                 }
             },
-            drawAlgorithmSelection: function (choices, finalResult) {
+            drawAlgorithmSelection: function (choices, nextTo, finalResult, found) {
                 if (finalResult) {
                     if (finalResult.zoneIncludes && finalResult.zoneIncludes.length > 0) {
                         for (var i = 0; i < finalResult.zoneIncludes.length; i++) {
                             var zi = finalResult.zoneIncludes[i];
                             if (zi.element) {
-                                DRAW_UTIL.drawZone(zi.zone, "#00E0FF", zi.coverage, zi.distance);
+                                DRAW_UTIL.drawZone(zi.zone, "#00E0FF", found ? zi.coverage : null, found ? zi.distance : null);
                                 DRAW_UTIL.drawElement(zi.element, "#00E0FF", "#00E0FFAA");
                             } else {
-                                DRAW_UTIL.drawZone(zi.zone, "#0000FF", zi.coverage, zi.distance);
+                                DRAW_UTIL.drawZone(zi.zone, "#0000FF", found ? zi.coverage : null, found ? zi.distance : null);
                             }
                         }
                     }
-                    DRAW_UTIL.drawElement(finalResult.elements[finalResult.elements.length - 1], "#00FF00", "#00FF00AA");
+                    if(found) DRAW_UTIL.drawElement(finalResult.elements[finalResult.elements.length - 1], "#00FF00", "#00FF00AA");
+                }else if(choices && choices.length > 0){
+
                 }
                 DRAW_UTIL.drawElementsArray(choices, "#ffee00", "#ffee0033", "#C4B200");
+                DRAW_UTIL.drawElementsArray(nextTo, "#e5c8ff", "#e5c8ff33", "#776689");
             },
             drawErrorNoFinalResult: function (resultList) {
                 if (resultList && resultList.length > 0) {
@@ -186,16 +189,30 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                 }
                 return null;
             },
-            addPrecisionsZones: function (result, precisions) {
-                if (precisions && precisions.length > 0) {
-                    for (var j = 0; j < precisions.length; j++) {
-                        var precisionElements = document.getLabelElements(precisions[j].label);
-                        if (!precisionElements || precisionElements.length === 0 || (precisionElements.length > 1 && !sameResultFoundFromLabel(precisionElements))) {
+            addPrecisionsZoneByLabel: function (result, options) {
+                var precisionElements = document.getLabelElements(options.ON_LABEL_POSITION.value ? options.ON_LABEL_POSITION.value : null);
+                if (precisionElements && precisionElements.length > 0) {
+                    for (var j = 0; j < precisionElements.length; j++) {
+                        if (!precisionElements || precisionElements.length === 0 || precisionElements.length > 1) {
                             DRAW_UTIL.drawElementsArray(precisionElements, "#ff0000", "#ff000033", "#990000");
-                            throw "ERROR : Ambiguous accuracy '" + precisions[j].position + "' of '" + precisions[j].label + "' (" + (!precisionElements ? 0 : precisionElements.length) + " occurrences : must have only 1) ! ";
+                            throw "ERROR : Ambiguous accuracy '" + options.ON_LABEL_POSITION.position + "' of '" + options.ON_LABEL_POSITION.value + "' (" + (!precisionElements ? 0 : precisionElements.length) + " occurrences : must have only 1) ! ";
                         }
                         var elementZone = precisionElements[0][precisionElements[0].length - 1];
-                        var zone = ZONE_UTIL.getElementZone(elementZone, precisions[j].position);
+                        var zone = ZONE_UTIL.getElementZone(elementZone, options.ON_LABEL_POSITION.position);
+                        ZONE_UTIL.addZoneCoverage(result, zone, elementZone);
+                    }
+                }
+            },
+            addPrecisionsZoneByQuery: function (result, options) {
+                var precisionElements = document.getLabelElements(null, options.ON_ELEMENT_POSITION.value ? options.ON_ELEMENT_POSITION.value : null);
+                if (precisionElements && precisionElements.length > 0) {
+                    for (var j = 0; j < precisionElements.length; j++) {
+                        if (!precisionElements || precisionElements.length === 0 || precisionElements.length > 1) {
+                            DRAW_UTIL.drawElementsArray(precisionElements, "#ff0000", "#ff000033", "#990000");
+                            throw "ERROR : Ambiguous accuracy '" + options.ON_ELEMENT_POSITION.position + "' of '" + options.ON_ELEMENT_POSITION.value + "' (" + (!precisionElements ? 0 : precisionElements.length) + " occurrences : must have only 1) ! ";
+                        }
+                        var elementZone = precisionElements[0][precisionElements[0].length - 1];
+                        var zone = ZONE_UTIL.getElementZone(elementZone, options.ON_ELEMENT_POSITION.position);
                         ZONE_UTIL.addZoneCoverage(result, zone, elementZone);
                     }
                 }
@@ -269,6 +286,8 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                 if (resultList && resultList.length > 0) {
                     for (var i = 0; i < resultList.length; i++) {
                         var zoneInclusion = CALCULATION_UTIL.calculateTotalZoneInclusion(resultList[i]);
+                        console.log("COVERAGE =");
+                        console.log(zoneInclusion.coverage);
                         if (zoneInclusion.coverage > 0 && (bestResult == null ||
                             zoneInclusion.coverage > bestZoneInclusion.coverage ||
                             (zoneInclusion.coverage === bestZoneInclusion.coverage && zoneInclusion.distance < bestZoneInclusion.distance))) {
@@ -285,6 +304,9 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                     for (var i = 0; i < result.zoneIncludes.length; i++) {
                         inclusion.distance += result.zoneIncludes[i].distance;
                         inclusion.coverage += result.zoneIncludes[i].coverage;
+                        if(result.zoneIncludes[i].coverage === 0){
+                            return {distance: 0, coverage: 0};
+                        }
                     }
                 }
                 return inclusion;
@@ -294,7 +316,7 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
 
         var CHECK_FIELD_CSS_QUERY_SELECTOR = "input[type=checkbox],input[type=radio]";
 
-        var DEFAULT_NEXT_DISTANCE = 350;
+        var DEFAULT_NEXT_DISTANCE = 250;
 
         function xpathStringLiteral(s) {
             if (s.indexOf('"') === -1)
@@ -321,10 +343,29 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
             return document.getElementsByXpath("//*[not(self::script) and not(self::option) and contains(text()," + xpathStringLiteral(label) + ")]");
         };
 
+        var removeClosestsNotInQuery = function (cssQuery,closests){
+            var list = Array.prototype.slice.call(document.querySelectorAll(cssQuery));
+            if(closests && closests.length > 0){
+                for(var i = 0; i < closests.length; i ++){
+                    if(list.indexOf(closests[i][closests[i].length - 1]) === -1){
+                        closests.splice(i, 1);
+                        i--;
+                    }
+                }
+            }else{
+                closests = [];
+                for(var i = 0; i < list.length; i ++) {
+                    closests.push([list[i]]);
+                }
+            }
+            return closests;
+        };
+
         document.getLabelElements = function (label, querySelector, closests, distance) {
             distance = distance ? distance : DEFAULT_NEXT_DISTANCE;
             var nextLabel = null;
             var candidates = null;
+            var result = null;
             if (label) {
                 if (label.includes(";")) {
                     var split = label.split(/;(.+)/);
@@ -332,11 +373,14 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
                     nextLabel = split[1];
                 }
                 candidates = getCandidatesByXPathLabel(label).concat(getInputsByVisualValue(label));
+                if(label.includes(" ")){
+                    candidates = candidates.concat(getCandidatesByXPathLabel(label.replace(" ","&nbsp;")));
+                }
+                result = getMostSignificantsClosestsLabel(candidates, closests, distance);
             } else if (querySelector) {
-                candidates = document.querySelectorAll(querySelector);
+                result = removeClosestsNotInQuery(querySelector,closests);
                 querySelector = null;
             }
-            var result = getMostSignificantsClosestsLabel(candidates, closests, distance);
             if (nextLabel || querySelector) {
                 return document.getLabelElements(nextLabel, querySelector, result, distance);
             } else {
@@ -468,23 +512,49 @@ var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[ty
             return null;
         };
 
+        var filterNextToElements = function(targets,nextToTargets){
+            if(targets && targets.length > 0 && nextToTargets && nextToTargets.length > 0){
+                for(var i = 0 ; i < targets.length; i++){
+                    var nextTo = false;
+                    for(var j = 0; j < nextToTargets.length; j++){
+                        if(document.getDistanceBetweenElement(targets[i][targets[i].length - 1], nextToTargets[j][nextToTargets[j].length - 1]) <= DEFAULT_NEXT_DISTANCE){
+                            nextTo = true;
+                            break;
+                        }
+                    }
+                    if(!nextTo){
+                        targets.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+            return targets;
+        };
+
         document.getElementByOptions = function (options) {
-            var r1 = document.getLabelElements(options["label"], options["tag"]);
-            var resultList = ZONE_UTIL.initZoneIncludeElements(r1);
-            var pz = ZONE_UTIL.getPageZone(options.pageZone);
-            var finalResult = null;
-            if (options.pageZone || (options.precisions && options.precisions.length > 0)) {
-                ZONE_UTIL.addZoneCoverage(resultList, pz, null);
-                ZONE_UTIL.addPrecisionsZones(resultList, options.precisions);
-                finalResult = CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);
-            } else if (resultList.length === 1) {
-                finalResult = resultList[0];
+            var targets = document.getLabelElements(options.ON_LABEL, options.ON_ELEMENT);
+            var nextToTargets = document.getLabelElements(options.NEXT_TO_LABEL, options.NEXT_TO_ELEMENT);
+            targets = filterNextToElements(targets,nextToTargets);
+            var resultList = ZONE_UTIL.initZoneIncludeElements(targets);
+            if(options.ON_PAGE_POSITION){
+                var pz = ZONE_UTIL.getPageZone(options.ON_PAGE_POSITION);
+                ZONE_UTIL.addZoneCoverage(resultList, pz);
             }
-            if (!finalResult) {
-                DRAW_UTIL.drawErrorNoFinalResult(resultList);
+            if(options.ON_ELEMENT_POSITION){
+                ZONE_UTIL.addPrecisionsZoneByQuery(resultList, options);
             }
-            if (options.showAlgorithm) {
-                DRAW_UTIL.drawAlgorithmSelection(r1, finalResult);
+            if(options.ON_PAGE_POSITION){
+                ZONE_UTIL.addPrecisionsZoneByLabel(resultList, options);
+            }
+            CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);
+
+            var finalResult = CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);
+
+            if (options.SHOW_DETAILS) {
+                DRAW_UTIL.drawAlgorithmSelection(targets, nextToTargets,
+                    finalResult ? finalResult :
+                        resultList && resultList.length > 0 ? resultList[0] : null,
+                    finalResult ? true : false);
             }
             return finalResult;
         };
@@ -500,12 +570,14 @@ var area = {
 };
 
 var options = {
-    "label": "Cat;Hello",
-    "tag": null,
-    "precisions": [{label: "Hello;Hello input 1", position: "top-left", distance: null}],
-    "pageZone": "bottom-right",
-    "record": true,
-    "pageZoneFirst": true
+    "ON_LABEL": "masquer;Tweet",
+    "ON_ELEMENT": "li a",
+    "NEXT_TO_LABEL": "tendances;Utiliser Twitter",
+    "NEXT_TO_ELEMENT": ".has-hover",
+    "ON_PAGE_POSITION": "top-left",
+    "ON_LABEL_POSITION": { value : "Bloquer et masquer;propos du blocage", position : "left"},
+    "ON_ELEMENT_POSITION": { value : "h1", position : "left"},
+    "SHOW_DETAILS": true
 };
 
 
