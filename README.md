@@ -4,14 +4,15 @@
 (function () {
         var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
         var DRAW_UTIL = {
-            ARROW_COUNTER : 0,
+            ARROW_COUNTER_INDEX: 0,
+            DRAWING_AREA_ID: "___KAMEMBER_DRAWING_AREA___",
             drawElementsArray: function (elements, border, background, link) {
                 if (elements && elements.length > 0) {
                     for (var i = 0; i < elements.length; i++) {
                         for (var j = 0; j < elements[i].length; j++) {
                             DRAW_UTIL.drawElement(elements[i][j], border, background);
                             if (j > 0) {
-                                DRAW_UTIL.drawLineBetweenElements(elements[i][j - 1], elements[i][j], link);
+                                DRAW_UTIL.drawLinkBetweenElements(elements[i][j - 1], elements[i][j], link);
                             }
                         }
                     }
@@ -31,8 +32,8 @@
                 e.style.width = (r.right - r.left) + "px";
                 e.style.boxSizing = "border-box";
             },
-            drawLineBetweenElements: function (e1, e2, color) {
-                DRAW_UTIL.ARROW_COUNTER = DRAW_UTIL.ARROW_COUNTER+1;
+            drawLinkBetweenElements: function (e1, e2, color) {
+                DRAW_UTIL.ARROW_COUNTER_INDEX++;
                 var rect1 = e1.getBoundingClientRect();
                 var rect2 = e2.getBoundingClientRect();
                 var area = DRAW_UTIL.getDrawingArea();
@@ -42,7 +43,7 @@
                 e.style.position = "absolute";
                 e.innerHTML = "" +
                     "<defs>\n" +
-                    "    <marker id=\"arrow-"+ DRAW_UTIL.ARROW_COUNTER +"\" markerWidth=\"10\" markerHeight=\"10\" refX=\"6\" refY=\"3\" orient=\"auto\" markerUnits=\"strokeWidth\" viewBox=\"0 0 15 15\">\n" +
+                    "    <marker id=\"arrow-" + DRAW_UTIL.ARROW_COUNTER_INDEX + "\" markerWidth=\"10\" markerHeight=\"10\" refX=\"6\" refY=\"3\" orient=\"auto\" markerUnits=\"strokeWidth\" viewBox=\"0 0 15 15\">\n" +
                     "      <path d=\"M0,0 L0,6 L9,3 z\" fill=\"" + color + "\" />\n" +
                     "    </marker>\n" +
                     "</defs>\n";
@@ -51,15 +52,15 @@
                 line.setAttributeNS(null, "y1", "" + (rect1.y + (rect1.height / 2)));
                 line.setAttributeNS(null, "x2", "" + (rect2.x + (rect2.width / 2)));
                 line.setAttributeNS(null, "y2", "" + (rect2.y + (rect2.height / 2)));
-                line.setAttributeNS(null, "marker-end", "url(#arrow-"+DRAW_UTIL.ARROW_COUNTER+")");
+                line.setAttributeNS(null, "marker-end", "url(#arrow-" + DRAW_UTIL.ARROW_COUNTER_INDEX + ")");
                 line.style.stroke = color;
                 line.style.strokeWidth = "2";
             },
             getDrawingArea: function () {
-                var drawingArea = document.getElementById("drawingArea___");
+                var drawingArea = document.getElementById(DRAW_UTIL.DRAWING_AREA_ID);
                 if (!drawingArea) {
                     drawingArea = document.createElement("DIV");
-                    drawingArea.id = "drawingArea___";
+                    drawingArea.id = DRAW_UTIL.DRAWING_AREA_ID;
                     drawingArea.style.position = "fixed";
                     drawingArea.style.top = "0";
                     drawingArea.style.bottom = "0";
@@ -82,19 +83,19 @@
                 e.style.left = zone.left + "px";
                 e.style.width = zone.width + "px";
                 e.style.boxSizing = "border-box";
-                if(coverage || distance){
+                if (coverage || distance) {
                     var i = area.appendChild(document.createElement("DIV"));
                     i.style.color = "black";
                     i.style.fontFamily = "monospace";
                     i.style.fontSize = "9px";
                     i.style.background = "#d6faff";
                     i.style.position = "absolute";
-                    i.style.border = "1px "+ border +" dashed";
-                    i.style.top = ((zone.source.y+30) < window.innerHeight ? zone.source.y : window.innerHeight - 30) + "px";
-                    i.style.left = ((zone.source.x+250) < window.innerWidth ? zone.source.x : window.innerWidth - 250) + "px";
+                    i.style.border = "1px " + border + " dashed";
+                    i.style.top = ((zone.source.y + 30) < window.innerHeight ? zone.source.y : window.innerHeight - 30) + "px";
+                    i.style.left = ((zone.source.x + 250) < window.innerWidth ? zone.source.x : window.innerWidth - 250) + "px";
                     i.style.padding = "2px";
                     i.style.zIndex = "9999999999999999";
-                    i.innerHTML = "Target is " + coverage + "% covered by zone <br /> There is "+ distance + "px distance from the zone source";
+                    i.innerHTML = "Target is " + coverage + "% covered by zone <br /> There is " + distance + "px distance from the zone source";
                 }
             },
             drawAlgorithmSelection: function (choices, nextTo, finalResult, found) {
@@ -110,9 +111,7 @@
                             }
                         }
                     }
-                    if(found) DRAW_UTIL.drawElement(finalResult.elements[finalResult.elements.length - 1], "#00FF00", "#00FF00AA");
-                }else if(choices && choices.length > 0){
-
+                    if (found) DRAW_UTIL.drawElement(finalResult.elements[finalResult.elements.length - 1], "#00FF00", "#00FF00AA");
                 }
                 DRAW_UTIL.drawElementsArray(choices, "#ffee00", "#ffee0033", "#C4B200");
                 DRAW_UTIL.drawElementsArray(nextTo, "#e5c8ff", "#e5c8ff33", "#776689");
@@ -133,21 +132,6 @@
                 }
                 throw "ERROR : No matching result found!";
             }
-        };
-
-        var sameResultFoundFromLabel = function (arr) {
-            if (arr && arr.length > 0) {
-                var e = null;
-                for (var i = 0; i < arr.length; i++) {
-                    if (e === null) {
-                        e = document.getElementUniqueXPath(arr[i][arr[i].length - 1]);
-                    } else {
-                        if (e !== document.getElementUniqueXPath(arr[i][arr[i].length - 1]))
-                            return false;
-                    }
-                }
-            }
-            return true;
         };
 
         var ZONE_UTIL = {
@@ -184,13 +168,14 @@
                         zone: zone,
                         element: elementZone ? elementZone : null,
                         coverage: Math.round((((bottom - top) * (right - left)) * 100) / (r.width * r.height)),
-                        distance: Math.round(Math.sqrt(Math.pow(zone.source.x - ((r.width / 2)+ r.left), 2) + Math.pow(zone.source.y - ((r.height / 2)+ r.top), 2)))
+                        distance: Math.round(Math.sqrt(Math.pow(zone.source.x - ((r.width / 2) + r.left), 2) + Math.pow(zone.source.y - ((r.height / 2) + r.top), 2)))
                     };
                 }
                 return null;
             },
             addPrecisionsZoneByLabel: function (result, options) {
-                var precisionElements = document.getLabelElements(options.ON_LABEL_POSITION.value ? options.ON_LABEL_POSITION.value : null);
+                //TODO
+                var precisionElements = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.ON_LABEL_POSITION.value ? options.ON_LABEL_POSITION.value : null);
                 if (precisionElements && precisionElements.length > 0) {
                     for (var j = 0; j < precisionElements.length; j++) {
                         if (!precisionElements || precisionElements.length === 0 || precisionElements.length > 1) {
@@ -203,7 +188,7 @@
                     }
                 }
             },
-            addPrecisionsZoneByQuery: function (result, options) {
+            /*addPrecisionsZoneByQuery: function (result, options) {
                 var precisionElements = document.getLabelElements(null, options.ON_ELEMENT_POSITION.value ? options.ON_ELEMENT_POSITION.value : null);
                 if (precisionElements && precisionElements.length > 0) {
                     for (var j = 0; j < precisionElements.length; j++) {
@@ -216,7 +201,7 @@
                         ZONE_UTIL.addZoneCoverage(result, zone, elementZone);
                     }
                 }
-            },
+            },*/
             getElementZone: function (element, label) {
                 if (element && label) {
                     var rect = element.getBoundingClientRect();
@@ -286,8 +271,6 @@
                 if (resultList && resultList.length > 0) {
                     for (var i = 0; i < resultList.length; i++) {
                         var zoneInclusion = CALCULATION_UTIL.calculateTotalZoneInclusion(resultList[i]);
-                        console.log("COVERAGE =");
-                        console.log(zoneInclusion.coverage);
                         if (zoneInclusion.coverage > 0 && (bestResult == null ||
                             zoneInclusion.coverage > bestZoneInclusion.coverage ||
                             (zoneInclusion.coverage === bestZoneInclusion.coverage && zoneInclusion.distance < bestZoneInclusion.distance))) {
@@ -304,7 +287,7 @@
                     for (var i = 0; i < result.zoneIncludes.length; i++) {
                         inclusion.distance += result.zoneIncludes[i].distance;
                         inclusion.coverage += result.zoneIncludes[i].coverage;
-                        if(result.zoneIncludes[i].coverage === 0){
+                        if (result.zoneIncludes[i].coverage === 0) {
                             return {distance: 0, coverage: 0};
                         }
                     }
@@ -343,101 +326,152 @@
             return document.getElementsByXpath("//*[not(self::script) and not(self::option) and contains(text()," + xpathStringLiteral(label) + ")]");
         };
 
-        var removeClosestsNotInQuery = function (cssQuery,closests){
-            var list = Array.prototype.slice.call(document.querySelectorAll(cssQuery));
-            if(closests && closests.length > 0){
-                for(var i = 0; i < closests.length; i ++){
-                    if(list.indexOf(closests[i][closests[i].length - 1]) === -1){
-                        closests.splice(i, 1);
-                        i--;
-                    }
-                }
-            }else{
-                closests = [];
-                for(var i = 0; i < list.length; i ++) {
-                    closests.push([list[i]]);
-                }
-            }
-            return closests;
-        };
 
-        document.getLabelElements = function (label, querySelector, closests, distance) {
-            distance = distance ? distance : DEFAULT_NEXT_DISTANCE;
-            var nextLabel = null;
-            var candidates = null;
-            var result = null;
-            if (label) {
-                if (label.includes(";")) {
-                    var split = label.split(/;(.+)/);
-                    label = split[0];
-                    nextLabel = split[1];
-                }
-                candidates = getCandidatesByXPathLabel(label).concat(getInputsByVisualValue(label));
-                if(label.includes(" ")){
-                    candidates = candidates.concat(getCandidatesByXPathLabel(label.replace(" ","&nbsp;")));
-                }
-                result = getMostSignificantsClosestsLabel(candidates, closests, distance);
-            } else if (querySelector) {
-                result = removeClosestsNotInQuery(querySelector,closests);
-                querySelector = null;
-            }
-            if (nextLabel || querySelector) {
-                return document.getLabelElements(nextLabel, querySelector, result, distance);
-            } else {
-                return result;
-            }
-        };
-
-        var getMostSignificantsClosestsLabel = function (candidates, closests, distance) {
-            distance = distance ? distance : DEFAULT_NEXT_DISTANCE;
-            if (!closests) {
-                closests = initClosestsCandidatesArray(candidates);
-            } else {
-                closests = fillClosestsCandidatesArray(candidates, closests, distance);
-            }
-            return closests;
-        };
-
-        var isVisible = function (element) {
-            return (window.getComputedStyle(element).getPropertyValue('display') !== "none");
-        };
-
-        var fillClosestsCandidatesArray = function (candidates, closests, maxDistance) {
-            maxDistance = maxDistance ? maxDistance : DEFAULT_NEXT_DISTANCE;
-            for (var i = 0; i < closests.length; i++) {
-                var closest = closests[i][closests[i].length - 1];
-                var closestArray = closests[i];
-                var bestCandidate = null;
-                var bestDistance = null;
-                for (var j = 0; j < candidates.length; j++) {
-                    var candidate = candidates[j];
-                    if (isVisible(candidate) && !closests[i].includes(candidate)) {
-                        var distance = document.getDistanceBetweenElement(candidate, closest);
-                        if (distance <= maxDistance && (bestCandidate === null || distance < bestDistance)) {
-                            bestCandidate = candidate;
-                            bestDistance = distance;
+        var PARSE_DOM_UTIL = {
+            DEFAULT_CLOSE_ENOUGH_DISTANCE : 250,
+            initNeighboursCandidatesArray : function (candidates) {
+                var neighbours = [];
+                if (candidates) {
+                    for (var i = 0; i < candidates.length; i++) {
+                        if (isVisible(candidates[i])) {
+                            neighbours.push([candidates[i]]);
                         }
                     }
                 }
-                if (bestCandidate) closestArray.push(bestCandidate);
-                else {
-                    closests.splice(i, 1);
-                    i--;
-                }
-            }
-            return closests;
-        };
-
-        var initClosestsCandidatesArray = function (candidates) {
-            var closests = [];
-            if (candidates) {
-                for (var i = 0; i < candidates.length; i++) {
-                    if (isVisible(candidates[i])) {
-                        closests.push([candidates[i]]);
+                return neighbours;
+            },
+            fillNeighboursCandidatesArray : function (candidates, neighbours, maxDistance) {
+                maxDistance = maxDistance ? maxDistance : DEFAULT_NEXT_DISTANCE;
+                for (var i = 0; i < neighbours.length; i++) {
+                    var closest = neighbours[i][neighbours[i].length - 1];
+                    var closestArray = neighbours[i];
+                    var bestCandidate = null;
+                    var bestDistance = null;
+                    for (var j = 0; j < candidates.length; j++) {
+                        var candidate = candidates[j];
+                        if (isVisible(candidate) && !neighbours[i].includes(candidate)) {
+                            var distance = document.getDistanceBetweenElement(candidate, closest);
+                            if (distance <= maxDistance && (bestCandidate === null || distance < bestDistance)) {
+                                bestCandidate = candidate;
+                                bestDistance = distance;
+                            }
+                        }
+                    }
+                    if (bestCandidate) closestArray.push(bestCandidate);
+                    else {
+                        neighbours.splice(i, 1);
+                        i--;
                     }
                 }
+                return neighbours;
+            },
+            filterNotEnoughNeighboursArray : function(candidates, label){
+                if(label){
+                    var neighbourLength = label.split(";").length;
+                    for (var i = 0; i < candidates.length; i++) {
+                        var neighbours = candidates[i];
+                        if(neighbours.length < neighbourLength){
+                            candidates.splice(i, 1);
+                            i--;
+                        }
+                    }
+                }
+                return candidates;
+            },
+            formatLabelSelector: function (label) {
+                var labelSelector = {currentLabel: null, nextLabel: null, cssQuery: null};
+                if (label && label.includes(";")) {
+                    var split = label.split(/;(.+)/);
+                    labelSelector.currentLabel = split[0];
+                    labelSelector.nextLabel = split[1];
+                } else {
+                    labelSelector.currentLabel = label;
+                }
+                if (labelSelector.currentLabel && labelSelector.currentLabel.includes("|")) {
+                    var split = labelSelector.currentLabel.split(/\|(.+)/);
+                    labelSelector.currentLabel = split[0];
+                    labelSelector.cssQuery = split[1];
+                }
+                return labelSelector;
+            },
+            findMostSignificantNeighboursLabel : function (candidates, neighbours, distance) {
+                distance = distance ? distance : DEFAULT_NEXT_DISTANCE;
+                if (!neighbours) {
+                    neighbours = this.initNeighboursCandidatesArray(candidates);
+                } else {
+                    neighbours = this.fillNeighboursCandidatesArray(candidates, neighbours, distance);
+                }
+                return neighbours;
+            },
+            filterNextToElements: function (targets, nextToTargets) {
+                var resultList = [];
+                if (targets && targets.length > 0 && nextToTargets && nextToTargets.length > 0) {
+                    for (var i = 0; i < targets.length; i++) {
+                        var nextTo = false;
+                        for (var j = 0; j < nextToTargets.length; j++) {
+                            if (document.getDistanceBetweenElement(targets[i][targets[i].length - 1], nextToTargets[j][nextToTargets[j].length - 1]) <= DEFAULT_NEXT_DISTANCE) {
+                                nextTo = true;
+                                break;
+                            }
+                        }
+                        if (nextTo) {
+                            resultList.push(targets[i]);
+                            i--;
+                        }
+                    }
+                } else {
+                    resultList = targets;
+                }
+                return resultList;
+            },
+            filterElementsNotInCssQuery : function (cssQuery, candidates) {
+                var list = cssQuery ? Array.prototype.slice.call(document.querySelectorAll(cssQuery)) : null;
+                if (candidates && candidates.length > 0 && list && list.length > 0) {
+                    for (var i = 0; i < candidates.length; i++) {
+                        if (list.indexOf(candidates[i]) === -1) {
+                            candidates.splice(i, 1);
+                            i--;
+                        }
+                    }
+                } else if(list && list.length > 0) {
+                    candidates = [];
+                    for (var i = 0; i < list.length; i++) {
+                        candidates.push(list[i]);
+                    }
+                }
+                return candidates;
+            },
+            findLabelElements: function(label) {
+                var foundElements = getCandidatesByXPathLabel(label).concat(getInputsByVisualValue(label));
+                if (label.includes(" ")) {
+                    foundElements = foundElements.concat(getCandidatesByXPathLabel(label.replace(" ", "&nbsp;")));
+                }
+                return foundElements;
+            },
+            findLinkedLabelSelectorElements : function (labelSelector, neighbours, distance){
+                distance = typeof distance === "undefined" ? this.DEFAULT_CLOSE_ENOUGH_DISTANCE : distance;
+                var candidates, result, properties;
+                properties = this.formatLabelSelector(labelSelector);
+                if (properties.currentLabel) {
+                    candidates = this.findLabelElements(properties.currentLabel);
+                }
+                if (properties.cssQuery) {
+                    candidates = this.filterElementsNotInCssQuery(properties.cssQuery, candidates);
+                }
+                if(candidates && candidates.length > 0){
+                    result = this.findMostSignificantNeighboursLabel(candidates, neighbours, distance);
+                }
+                if (properties.nextLabel) {
+                    return this.findLinkedLabelSelectorElements(properties.nextLabel, result, distance);
+                } else {
+                    return result;
+                }
             }
-            return closests;
+        };
+
+
+        var isVisible = function (element) {
+            return (window.getComputedStyle(element).getPropertyValue('display') !== "none");
         };
 
         var getRectangleDistanceX = function (source, target) {
@@ -512,44 +546,39 @@
             return null;
         };
 
-        var filterNextToElements = function(targets,nextToTargets){
-            if(targets && targets.length > 0 && nextToTargets && nextToTargets.length > 0){
-                for(var i = 0 ; i < targets.length; i++){
-                    var nextTo = false;
-                    for(var j = 0; j < nextToTargets.length; j++){
-                        if(document.getDistanceBetweenElement(targets[i][targets[i].length - 1], nextToTargets[j][nextToTargets[j].length - 1]) <= DEFAULT_NEXT_DISTANCE){
-                            nextTo = true;
-                            break;
-                        }
-                    }
-                    if(!nextTo){
-                        targets.splice(i, 1);
-                        i--;
-                    }
-                }
-            }
-            return targets;
-        };
-
         document.getElementByOptions = function (options) {
-            var targets = document.getLabelElements(options.ON_LABEL, options.ON_ELEMENT);
-            var nextToTargets = document.getLabelElements(options.NEXT_TO_LABEL, options.NEXT_TO_ELEMENT);
-            targets = filterNextToElements(targets,nextToTargets);
-            var resultList = ZONE_UTIL.initZoneIncludeElements(targets);
+            /** 1 - FIND ON_ELEMENT MATCHING **/
+            var targets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.ON_ELEMENT);
+            targets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(targets,options.ON_ELEMENT);
+
+            /** 2 - FIND NEXT_TO_ELEMENT MATCHING **/
+            var nextToTargets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.NEXT_TO_ELEMENT);
+            nextToTargets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(nextToTargets,options.NEXT_TO_ELEMENT);
+
+            /** 3 - FIND ON_ELEMENT -NEIGHBOURS- NEXT_TO_ELEMENT MATCHING **/
+            var resultList = PARSE_DOM_UTIL.filterNextToElements(targets, nextToTargets);
+
+            /** 4 - INIT THE COLLECTION TO ZONE MATCHING **/
+            resultList = ZONE_UTIL.initZoneIncludeElements(resultList);
+
+            /** 5 - FIND ON_PAGE_POSITION ZONE MATCHING **/
             if(options.ON_PAGE_POSITION){
                 var pz = ZONE_UTIL.getPageZone(options.ON_PAGE_POSITION);
                 ZONE_UTIL.addZoneCoverage(resultList, pz);
             }
+            console.log(resultList);
+
             if(options.ON_ELEMENT_POSITION){
                 ZONE_UTIL.addPrecisionsZoneByQuery(resultList, options);
             }
-            if(options.ON_PAGE_POSITION){
+
+            /*if(options.ON_PAGE_POSITION){
                 ZONE_UTIL.addPrecisionsZoneByLabel(resultList, options);
             }
             CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);
 
-            var finalResult = CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);
-
+            var finalResult = CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);*/
+            var finalResult = null;
             if (options.SHOW_DETAILS) {
                 DRAW_UTIL.drawAlgorithmSelection(targets, nextToTargets,
                     finalResult ? finalResult :
@@ -570,13 +599,10 @@ var area = {
 };
 
 var options = {
-    "ON_LABEL": "masquer;Tweet",
-    "ON_ELEMENT": "li a",
-    "NEXT_TO_LABEL": "tendances;Utiliser Twitter",
-    "NEXT_TO_ELEMENT": ".has-hover",
-    "ON_PAGE_POSITION": "top-left",
-    "ON_LABEL_POSITION": { value : "Bloquer et masquer;propos du blocage", position : "left"},
-    "ON_ELEMENT_POSITION": { value : "h1", position : "left"},
+    "ON_ELEMENT": "Banque;FEUILLEBOIS",
+    //"NEXT_TO_ELEMENT": "A|.ItnPeopleSearchResult;e",
+    "ON_PAGE_POSITION": "top",
+    "ON_ELEMENT_POSITION": {value: "h1", position: "left"},
     "SHOW_DETAILS": true
 };
 
