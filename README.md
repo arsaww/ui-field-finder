@@ -583,4 +583,58 @@ var options = {
 
 document.getElementByOptions(options);
 
+/** NEW SENTENCES **/
+
+var NEW_SENTENCES =
+    {
+        main: [
+            {
+                content: 'Open the url "www.google.com"',
+                cursorRequired : '1',
+                addition: [
+                    {key: "IS_WORKING", range: "1,2,3,4", cursor: "5"},
+                    {key: "RETRY_INTERVAL", range: "1,2,3,4,5", cursor: "6"},
+                    {key: "TIMEOUT", range: "1.2,3,4,5,6", cursor: "7"},
+                    {key: "SHOW_DETAILS", range: "1,2,3,4,5,6,7", cursor:"8"}
+                ]
+            },
+            {
+                content: 'Set value "anyValue"',
+                cursorRequired : '2',
+                addition: [
+                    {key: "ON_LABEL", range: "1", cursor : "2"},
+                    {key: "ON_ELEMENT", range: "1", cursor : "2"},
+                    {key: "NEXT_TO_LABEL", range: "2", cursor : "2"},
+                    {key: "NEXT_TO_ELEMENT", range: "2", cursor : "2"},
+                    {key: "ON_PAGE_POSITION", range: "2,3", cursor : "3"},
+                    {key: "ON_LABEL_POSITION", range: "2,3", cursor : "4"},
+                    {key: "ON_ELEMENT_POSITION", range: "2,3", cursor : "4"},
+                    {key: "IS_WORKING", range: "2,3,4", cursor: "5"},
+                    {key: "RETRY_INTERVAL", range: "2,3,4,5", cursor: "6"},
+                    {key: "TIMEOUT", range: "2,3,4,5,6", cursor: "7"},
+                    {key: "SHOW_DETAILS", range: "2,3,4,5,6,7", cursor:"8"}
+                ]
+            },
+            {content: 'Verify value "anyValue"'},
+            {content: 'Verify existence "true"'},
+            {content: 'Click'},
+            {content: 'Right-Click'},
+            {content: 'Double-Click'}
+        ],
+        secondary: [
+            {key: 'ON_LABEL', value: 'on "parentLabel;target"', repeat: false, tags: ["Global"]},
+            {key: 'ON_ELEMENT', value: 'on "div.main:nth-of-type(1)" element', repeat: false, tags: ["Global"]},
+            {key: 'NEXT_TO_LABEL', value: 'next to "parentLabel;target"', repeat: false, tags: ["Global"]},
+            {key: 'NEXT_TO_ELEMENT', value: 'next to "div.main:nth-of-type(1)" element', repeat: false, tags: ["Global"]},
+            {key: 'ON_PAGE_POSITION', value: 'on the "top-left" of the page', repeat: false, tags: ["Global"]},
+            {key: 'ON_LABEL_POSITION', value: 'on the "top-left" of "parentLabel;target"', repeat: true, tags: ["Global"]},
+            {key: 'ON_ELEMENT_POSITION', value: 'on the "top-left" of "div.main:nth-of-type(1)" element', repeat: true, tags: ["Global"]},
+            {key: 'IS_WORKING', value: 'and it works "true"', repeat: false, tags: ["Global"]},
+            {key: 'RETRY_INTERVAL', value: 'with "10" retry max within "100"ms interval', repeat: false, tags: ["Global"]},
+            {key: 'TIMEOUT', value: 'and timeout after "10000"ms', repeat: false, tags: ["Global"]},
+            {key: 'SHOW_DETAILS', value: 'and show details "details1"', repeat: false, tags: ["Global"]}
+        ]
+    };
+
+
 ```
