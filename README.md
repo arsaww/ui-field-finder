@@ -98,7 +98,8 @@
                     i.innerHTML = "Target is " + coverage + "% covered by zone <br /> There is " + distance + "px distance from the zone source";
                 }
             },
-            drawAlgorithmSelection: function (choices, nextTo, finalResult, found) {
+            drawAlgorithmSelection: function (choices, nextTo, finalResult, insideOf, found) {
+                console.log(finalResult);
                 if (finalResult) {
                     if (finalResult.zoneIncludes && finalResult.zoneIncludes.length > 0) {
                         for (var i = 0; i < finalResult.zoneIncludes.length; i++) {
@@ -115,6 +116,7 @@
                 }
                 DRAW_UTIL.drawElementsArray(choices, "#ffee00", "#ffee0033", "#C4B200");
                 DRAW_UTIL.drawElementsArray(nextTo, "#e5c8ff", "#e5c8ff33", "#776689");
+                DRAW_UTIL.drawElementsArray(insideOf, "#d97200", "#d9720005", "#653200");
             },
             drawErrorNoFinalResult: function (resultList) {
                 if (resultList && resultList.length > 0) {
@@ -173,35 +175,6 @@
                 }
                 return null;
             },
-            addPrecisionsZoneByLabel: function (result, options) {
-                //TODO
-                var precisionElements = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.ON_LABEL_POSITION.value ? options.ON_LABEL_POSITION.value : null);
-                if (precisionElements && precisionElements.length > 0) {
-                    for (var j = 0; j < precisionElements.length; j++) {
-                        if (!precisionElements || precisionElements.length === 0 || precisionElements.length > 1) {
-                            DRAW_UTIL.drawElementsArray(precisionElements, "#ff0000", "#ff000033", "#990000");
-                            throw "ERROR : Ambiguous accuracy '" + options.ON_LABEL_POSITION.position + "' of '" + options.ON_LABEL_POSITION.value + "' (" + (!precisionElements ? 0 : precisionElements.length) + " occurrences : must have only 1) ! ";
-                        }
-                        var elementZone = precisionElements[0][precisionElements[0].length - 1];
-                        var zone = ZONE_UTIL.getElementZone(elementZone, options.ON_LABEL_POSITION.position);
-                        ZONE_UTIL.addZoneCoverage(result, zone, elementZone);
-                    }
-                }
-            },
-            /*addPrecisionsZoneByQuery: function (result, options) {
-                var precisionElements = document.getLabelElements(null, options.ON_ELEMENT_POSITION.value ? options.ON_ELEMENT_POSITION.value : null);
-                if (precisionElements && precisionElements.length > 0) {
-                    for (var j = 0; j < precisionElements.length; j++) {
-                        if (!precisionElements || precisionElements.length === 0 || precisionElements.length > 1) {
-                            DRAW_UTIL.drawElementsArray(precisionElements, "#ff0000", "#ff000033", "#990000");
-                            throw "ERROR : Ambiguous accuracy '" + options.ON_ELEMENT_POSITION.position + "' of '" + options.ON_ELEMENT_POSITION.value + "' (" + (!precisionElements ? 0 : precisionElements.length) + " occurrences : must have only 1) ! ";
-                        }
-                        var elementZone = precisionElements[0][precisionElements[0].length - 1];
-                        var zone = ZONE_UTIL.getElementZone(elementZone, options.ON_ELEMENT_POSITION.position);
-                        ZONE_UTIL.addZoneCoverage(result, zone, elementZone);
-                    }
-                }
-            },*/
             getElementZone: function (element, label) {
                 if (element && label) {
                     var rect = element.getBoundingClientRect();
@@ -296,7 +269,6 @@
             }
         };
 
-
         var CHECK_FIELD_CSS_QUERY_SELECTOR = "input[type=checkbox],input[type=radio]";
 
         var DEFAULT_NEXT_DISTANCE = 250;
@@ -328,8 +300,8 @@
 
 
         var PARSE_DOM_UTIL = {
-            DEFAULT_CLOSE_ENOUGH_DISTANCE : 250,
-            initNeighboursCandidatesArray : function (candidates) {
+            DEFAULT_CLOSE_ENOUGH_DISTANCE: 250,
+            initNeighboursCandidatesArray: function (candidates) {
                 var neighbours = [];
                 if (candidates) {
                     for (var i = 0; i < candidates.length; i++) {
@@ -340,7 +312,7 @@
                 }
                 return neighbours;
             },
-            fillNeighboursCandidatesArray : function (candidates, neighbours, maxDistance) {
+            fillNeighboursCandidatesArray: function (candidates, neighbours, maxDistance) {
                 maxDistance = maxDistance ? maxDistance : DEFAULT_NEXT_DISTANCE;
                 for (var i = 0; i < neighbours.length; i++) {
                     var closest = neighbours[i][neighbours[i].length - 1];
@@ -365,12 +337,12 @@
                 }
                 return neighbours;
             },
-            filterNotEnoughNeighboursArray : function(candidates, label){
-                if(label){
+            filterNotEnoughNeighboursArray: function (candidates, label) {
+                if (label && candidates && candidates.length > 0) {
                     var neighbourLength = label.split(";").length;
                     for (var i = 0; i < candidates.length; i++) {
                         var neighbours = candidates[i];
-                        if(neighbours.length < neighbourLength){
+                        if (neighbours.length < neighbourLength) {
                             candidates.splice(i, 1);
                             i--;
                         }
@@ -394,7 +366,7 @@
                 }
                 return labelSelector;
             },
-            findMostSignificantNeighboursLabel : function (candidates, neighbours, distance) {
+            findMostSignificantNeighboursLabel: function (candidates, neighbours, distance) {
                 distance = distance ? distance : DEFAULT_NEXT_DISTANCE;
                 if (!neighbours) {
                     neighbours = this.initNeighboursCandidatesArray(candidates);
@@ -402,6 +374,33 @@
                     neighbours = this.fillNeighboursCandidatesArray(candidates, neighbours, distance);
                 }
                 return neighbours;
+            },
+            filterInsideOfElements: function (targets, insideOfElements) {
+                var resultList = [];
+                if (targets && targets.length > 0 && insideOfElements && insideOfElements.length > 0) {
+                    for (var i = 0; i < targets.length; i++) {
+                        var inside = false;
+                        for (var j = 0; j < insideOfElements.length; j++) {
+                            var packInside = true;
+                            for (var k = 0; k < targets[i].length; k++) {
+                                if (!this.isChild(targets[i][k], insideOfElements[j][insideOfElements[j].length - 1])) {
+                                    packInside = false;
+                                    break;
+                                }
+                            }
+                            if (packInside) {
+                                inside = true;
+                                break;
+                            }
+                        }
+                        if (inside) {
+                            resultList.push(targets[i]);
+                        }
+                    }
+                } else {
+                    resultList = targets;
+                }
+                return resultList;
             },
             filterNextToElements: function (targets, nextToTargets) {
                 var resultList = [];
@@ -416,7 +415,6 @@
                         }
                         if (nextTo) {
                             resultList.push(targets[i]);
-                            i--;
                         }
                     }
                 } else {
@@ -424,7 +422,7 @@
                 }
                 return resultList;
             },
-            filterElementsNotInCssQuery : function (cssQuery, candidates) {
+            filterElementsNotInCssQuery: function (cssQuery, candidates) {
                 var list = cssQuery ? Array.prototype.slice.call(document.querySelectorAll(cssQuery)) : null;
                 if (candidates && candidates.length > 0 && list && list.length > 0) {
                     for (var i = 0; i < candidates.length; i++) {
@@ -433,22 +431,36 @@
                             i--;
                         }
                     }
-                } else if(list && list.length > 0) {
+                } else if (list && list.length > 0) {
                     candidates = [];
                     for (var i = 0; i < list.length; i++) {
                         candidates.push(list[i]);
                     }
+                } else {
+                    candidates = [];
                 }
                 return candidates;
             },
-            findLabelElements: function(label) {
+            findLabelElements: function (label) {
                 var foundElements = getCandidatesByXPathLabel(label).concat(getInputsByVisualValue(label));
                 if (label.includes(" ")) {
                     foundElements = foundElements.concat(getCandidatesByXPathLabel(label.replace(" ", "&nbsp;")));
                 }
                 return foundElements;
             },
-            findLinkedLabelSelectorElements : function (labelSelector, neighbours, distance){
+            addElementsZoneCoverage: function (resultList, linkedElements, position) {
+                console.log(resultList);
+                console.log(linkedElements);
+                console.log(position);
+                if (linkedElements && linkedElements.length > 0 && position) {
+                    for (var i = 0; i < linkedElements.length; i++) {
+                        var target = linkedElements[i][linkedElements[i].length - 1];
+                        var zone = ZONE_UTIL.getElementZone(target, position);
+                        ZONE_UTIL.addZoneCoverage(resultList, zone, target);
+                    }
+                }
+            },
+            findLinkedLabelSelectorElements: function (labelSelector, neighbours, distance) {
                 distance = typeof distance === "undefined" ? this.DEFAULT_CLOSE_ENOUGH_DISTANCE : distance;
                 var candidates, result, properties;
                 properties = this.formatLabelSelector(labelSelector);
@@ -458,7 +470,7 @@
                 if (properties.cssQuery) {
                     candidates = this.filterElementsNotInCssQuery(properties.cssQuery, candidates);
                 }
-                if(candidates && candidates.length > 0){
+                if (candidates && candidates.length > 0) {
                     result = this.findMostSignificantNeighboursLabel(candidates, neighbours, distance);
                 }
                 if (properties.nextLabel) {
@@ -466,6 +478,34 @@
                 } else {
                     return result;
                 }
+            },
+            verifyAccuracy: function (collection, collectionIdentifier, min, max) {
+                min = min ? min : 1;
+                max = max ? max : 999999999;
+                var length = collection ? collection.length : 0;
+                if (length < min || length > max) {
+                    DRAW_UTIL.drawElementsArray(collection, "#ff0000", "#ff000033", "#990000");
+                    throw "ERROR : Ambiguous accuracy of " + collectionIdentifier + " (" + length + " found and must have between " + min + "-" + max + " occurrences) ! ";
+                }
+            },
+            noMatching: function (collection, collectionIdentifier, targets, nextTo) {
+                DRAW_UTIL.drawElementsArray(collection, "#ff0000", "#ff000033", "#990000");
+                if (targets) {
+                    DRAW_UTIL.drawElementsArray(targets, "#ffee00", "#ffee0033", "#C4B200");
+                }
+                if (nextTo) {
+                    DRAW_UTIL.drawElementsArray(nextTo, "#e5c8ff", "#e5c8ff33", "#776689");
+                }
+                throw "ERROR : no matching of " + collectionIdentifier + " with potential targets ! ";
+            },
+            isChild: function (obj, parentObj) {
+                while (obj !== undefined && obj !== null && obj.tagName.toUpperCase() !== 'BODY') {
+                    if (obj === parentObj) {
+                        return true;
+                    }
+                    obj = obj.parentNode;
+                }
+                return false;
             }
         };
 
@@ -547,42 +587,71 @@
         };
 
         document.getElementByOptions = function (options) {
+            var targets, nextToTargets, insideOfElements, resultList, finalResult;
+
             /** 1 - FIND ON_ELEMENT MATCHING **/
-            var targets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.ON_ELEMENT);
-            targets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(targets,options.ON_ELEMENT);
+            if (options.ON_ELEMENT) {
+                targets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.ON_ELEMENT);
+                targets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(targets, options.ON_ELEMENT);
+                PARSE_DOM_UTIL.verifyAccuracy(targets, "[on element '" + options.ON_ELEMENT + "']", 1);
+            }
 
-            /** 2 - FIND NEXT_TO_ELEMENT MATCHING **/
-            var nextToTargets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.NEXT_TO_ELEMENT);
-            nextToTargets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(nextToTargets,options.NEXT_TO_ELEMENT);
+            /** 2.1 - FIND NEXT_TO_ELEMENT MATCHING **/
+            if (options.NEXT_TO_ELEMENT) {
+                nextToTargets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.NEXT_TO_ELEMENT);
+                nextToTargets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(nextToTargets, options.NEXT_TO_ELEMENT);
+                PARSE_DOM_UTIL.verifyAccuracy(nextToTargets, "[next to '" + options.NEXT_TO_ELEMENT + "']", 1);
+            }
 
-            /** 3 - FIND ON_ELEMENT -NEIGHBOURS- NEXT_TO_ELEMENT MATCHING **/
-            var resultList = PARSE_DOM_UTIL.filterNextToElements(targets, nextToTargets);
+            resultList = targets;
+
+            /** 2.2 - FIND ON_ELEMENT -NEIGHBOURS- NEXT_TO_ELEMENT MATCHING **/
+            if (options.ON_ELEMENT && options.NEXT_TO_ELEMENT) {
+                resultList = PARSE_DOM_UTIL.filterNextToElements(targets, nextToTargets);
+                if (resultList.length === 0)
+                    PARSE_DOM_UTIL.noMatching(nextToTargets, "[next to '" + options.NEXT_TO_ELEMENT + "']", targets);
+            }
+
+            /** 3.1 - FIND INSIDE_OF_ELEMENT MATCHING **/
+            if (options.INSIDE_OF_ELEMENT) {
+                insideOfElements = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.INSIDE_OF_ELEMENT);
+                insideOfElements = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(insideOfElements, options.INSIDE_OF_ELEMENT);
+                PARSE_DOM_UTIL.verifyAccuracy(insideOfElements, "[inside of '" + options.INSIDE_OF_ELEMENT + "']", 1, 1);
+            }
+
+            /** 3.2 - FIND ON_ELEMENT -CHILDREN- INSIDE_OF_ELEMENT MATCHING **/
+            if (options.ON_ELEMENT && options.INSIDE_OF_ELEMENT) {
+                var tempList = resultList;
+                resultList = PARSE_DOM_UTIL.filterInsideOfElements(resultList, insideOfElements);
+                if (resultList.length === 0)
+                    PARSE_DOM_UTIL.noMatching(insideOfElements, "[inside of '" + options.INSIDE_OF_ELEMENT + "']", tempList, nextToTargets);
+            }
 
             /** 4 - INIT THE COLLECTION TO ZONE MATCHING **/
             resultList = ZONE_UTIL.initZoneIncludeElements(resultList);
 
             /** 5 - FIND ON_PAGE_POSITION ZONE MATCHING **/
-            if(options.ON_PAGE_POSITION){
-                var pz = ZONE_UTIL.getPageZone(options.ON_PAGE_POSITION);
-                ZONE_UTIL.addZoneCoverage(resultList, pz);
-            }
-            console.log(resultList);
-
-            if(options.ON_ELEMENT_POSITION){
-                ZONE_UTIL.addPrecisionsZoneByQuery(resultList, options);
+            if (options.ON_PAGE_POSITION) {
+                var pageZone = ZONE_UTIL.getPageZone(options.ON_PAGE_POSITION);
+                ZONE_UTIL.addZoneCoverage(resultList, pageZone);
             }
 
-            /*if(options.ON_PAGE_POSITION){
-                ZONE_UTIL.addPrecisionsZoneByLabel(resultList, options);
+            /** 6 - FIND ON_ELEMENT_POSITION ZONE MATCHING **/
+            if (options.ON_ELEMENT_POSITION && options.ON_ELEMENT_POSITION.value && options.ON_ELEMENT_POSITION.position) {
+                PARSE_DOM_UTIL.addElementsZoneCoverage(resultList,
+                    PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.ON_ELEMENT_POSITION.value),
+                    options.ON_ELEMENT_POSITION.position);
+                //PARSE_DOM_UTIL.verifyAccuracy(nextToTargets, "[next to '" + options.NEXT_TO_ELEMENT + "']");
             }
-            CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);
+            /** 7 - CALCULATE FINAL RESULT MATCHING ZONE **/
+            finalResult = CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);
 
-            var finalResult = CALCULATION_UTIL.calculateFinalResultFromPrecisions(resultList);*/
-            var finalResult = null;
+            /** 8 - DRAW ALGORITHM RESULTS **/
             if (options.SHOW_DETAILS) {
                 DRAW_UTIL.drawAlgorithmSelection(targets, nextToTargets,
                     finalResult ? finalResult :
-                        resultList && resultList.length > 0 ? resultList[0] : null,
+                        resultList && resultList.length > 0 ? resultList[0][resultList[0].length - 1] : null,
+                    insideOfElements,
                     finalResult ? true : false);
             }
             return finalResult;
@@ -590,22 +659,24 @@
     }()
 );
 
-var area = {
+/*var area = {
     top: 0,
     left: 0,
     width: 0,
     height: 0,
     source: {x: 0, y: 0}
-};
+};*/
 
 var options = {
-    "ON_ELEMENT": "Banque;FEUILLEBOIS",
-    //"NEXT_TO_ELEMENT": "A|.ItnPeopleSearchResult;e",
-    "ON_PAGE_POSITION": "top",
-    "ON_ELEMENT_POSITION": {value: "h1", position: "left"},
+    "ON_ELEMENT": "Aide;Portails thématiques|a;Article au hasard|a;Contact|a",
+    "NEXT_TO_ELEMENT": "Article labellisé",
+    "INSIDE_OF_ELEMENT": "|#mw-panel",
+    "ON_ELEMENT_POSITION": {value: "Pages liées;Outils", position: "top"},
+    "ON_PAGE_POSITION": "left",
     "SHOW_DETAILS": true
 };
 
+//Try it on : https://fr.wikipedia.org/wiki/Wikip%C3%A9dia:Accueil_principal
 
 document.getElementByOptions(options);
 
