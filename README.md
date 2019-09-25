@@ -244,9 +244,9 @@
                 if (resultList && resultList.length > 0) {
                     for (var i = 0; i < resultList.length; i++) {
                         var zoneInclusion = CALCULATION_UTIL.calculateTotalZoneInclusion(resultList[i]);
-                        if (zoneInclusion.coverage > 0 && (bestResult == null ||
+                        if ((!zoneInclusion && resultList.length === 1) || (zoneInclusion.coverage > 0 && (bestResult == null ||
                             zoneInclusion.coverage > bestZoneInclusion.coverage ||
-                            (zoneInclusion.coverage === bestZoneInclusion.coverage && zoneInclusion.distance < bestZoneInclusion.distance))) {
+                            (zoneInclusion.coverage === bestZoneInclusion.coverage && zoneInclusion.distance < bestZoneInclusion.distance)))) {
                             bestZoneInclusion = zoneInclusion;
                             bestResult = resultList[i];
                         }
