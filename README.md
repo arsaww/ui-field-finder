@@ -748,4 +748,20 @@ var NEW_SENTENCES =
     };
 
 
+/*
+init.put(ON_ELEMENT, "on \"([^\"]*)\"");
+        init.put(NEXT_TO_ELEMENT, "next to \"([^\"]*)\"");
+        init.put(INSIDE_OF_ELEMENT, "inside of \"([^\"]*)\"");
+        init.put(ON_PAGE_POSITION, "on the \"([^\"]*)\" of the page");
+        init.put(ON_ELEMENT_POSITION, "on the \"([^\"]*)\" of \"([^\"]*)\"");
+        init.put(SHOW_DETAILS, "and show algo details \"([^\"]*)\"");
+        
+init.put(IS_WORKING, "and it succeed \"([^\"]*)\"");
+        init.put(RETRY_INTERVAL, "with max \"([^\"]*)\" retry within \"[^\"]*\"ms interval");
+        init.put(TIMEOUT, "with \"([^\"]*)\"ms timeout");
+        init.put(SHOW_DETAILS, "and show algo details \"([^\"]*)\"");        
+
+*/
+
+
 ```
