@@ -241,9 +241,11 @@
             calculateFinalResultFromPrecisions: function (resultList) {
                 var bestResult = null;
                 var bestZoneInclusion = null;
+                var hasZoneInclusion = false;
                 if (resultList && resultList.length > 0) {
                     for (var i = 0; i < resultList.length; i++) {
                         var zoneInclusion = CALCULATION_UTIL.calculateTotalZoneInclusion(resultList[i]);
+                        hasZoneInclusion = zoneInclusion ? true : hasZoneInclusion;
                         if ((!zoneInclusion && resultList.length === 1) || (zoneInclusion && zoneInclusion.coverage > 0 && (bestResult == null ||
                             zoneInclusion.coverage > bestZoneInclusion.coverage ||
                             (zoneInclusion.coverage === bestZoneInclusion.coverage && zoneInclusion.distance < bestZoneInclusion.distance)))) {
@@ -251,6 +253,9 @@
                             bestResult = resultList[i];
                         }
                     }
+                }
+                if(bestResult === null && hasZoneInclusion && resultList.length > 0){
+                    return resultList[0];
                 }
                 return bestResult;
             },
@@ -403,33 +408,33 @@
                 return resultList;
             },
             filterNextToElements: function (targets, nextToTargets) {
-                    var resultList = [];
-                    if (targets && targets.length > 0 && nextToTargets && nextToTargets.length > 0) {
-                        for (var i = 0; i < targets.length; i++) {
-                            var nextTo = false;
-                            var closestDistanceBetween = null;
-                            for (var j = 0; j < nextToTargets.length; j++) {
-                                var distanceBetween = document.getDistanceBetweenElement(targets[i][targets[i].length - 1],
-                                    nextToTargets[j][nextToTargets[j].length - 1]);
-                                if (distanceBetween <= DEFAULT_NEXT_DISTANCE) {
-                                    nextTo = true;
-                                    if (closestDistanceBetween == null || distanceBetween < closestDistanceBetween)
-                                        closestDistanceBetween = distanceBetween;
-                                }
-                            }
-                            if (nextTo) {
-                                resultList.push({"element": targets[i], "distance": closestDistanceBetween});
+                var resultList = [];
+                if (targets && targets.length > 0 && nextToTargets && nextToTargets.length > 0) {
+                    for (var i = 0; i < targets.length; i++) {
+                        var nextTo = false;
+                        var closestDistanceBetween = null;
+                        for (var j = 0; j < nextToTargets.length; j++) {
+                            var distanceBetween = document.getDistanceBetweenElement(targets[i][targets[i].length - 1],
+                                nextToTargets[j][nextToTargets[j].length - 1]);
+                            if (distanceBetween <= DEFAULT_NEXT_DISTANCE) {
+                                nextTo = true;
+                                if (closestDistanceBetween == null || distanceBetween < closestDistanceBetween)
+                                    closestDistanceBetween = distanceBetween;
                             }
                         }
-                        //sort and format resultList
-                        resultList.sort(function(a, b){return a.distance-b.distance});
-                        for(var i = 0; i < resultList.length; i ++){
-                            resultList[i] = resultList[i].element;
+                        if (nextTo) {
+                            resultList.push({"element": targets[i], "distance": closestDistanceBetween});
                         }
-                    } else {
-                        resultList = targets;
                     }
-                    return resultList;
+                    //sort and format resultList
+                    resultList.sort(function(a, b){return a.distance-b.distance});
+                    for(var i = 0; i < resultList.length; i ++){
+                        resultList[i] = resultList[i].element;
+                    }
+                } else {
+                    resultList = targets;
+                }
+                return resultList;
             },
             filterElementsNotInCssQuery: function (cssQuery, candidates) {
                 var list = cssQuery ? Array.prototype.slice.call(document.querySelectorAll(cssQuery)) : null;
