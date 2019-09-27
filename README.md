@@ -591,7 +591,7 @@
                 var innerText = getRootInnerText(element);
                 var attribute = element.id ? "@id='" + element.id + "' and " : "";
                 attribute += element.className ? "@class='" + element.className + "' and " : "";
-                attribute += element.type ? "@type='" + element.type + "' and " : "";
+                //attribute += element.type ? "@type='" + element.type + "' and " : "";
                 attribute += element.name ? "@name='" + element.name + "' and " : "";
                 attribute += innerText ? "contains(text()," + xpathStringLiteral(innerText) + ")" : "";
                 attribute = attribute.endsWith(" and ") ? attribute.slice(0, -5) : attribute;
