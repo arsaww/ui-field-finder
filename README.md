@@ -162,7 +162,11 @@
                         zone: zone,
                         element: elementZone ? elementZone : null,
                         coverage: Math.round((((bottom - top) * (right - left)) * 100) / (r.width * r.height)),
-                        distance: Math.round(Math.sqrt(Math.pow(zone.source.x - ((r.width / 2) + r.left), 2) + Math.pow(zone.source.y - ((r.height / 2) + r.top), 2)))
+                        distance: Math.round(Math.sqrt(Math.pow(zone.source.x -
+                            (zone.source.x < r.left ? r.left : zone.source.x > (r.left + r.width) ? (r.left + r.width) : ((r.width / 2) + r.left))
+                            , 2) + Math.pow(zone.source.y -
+                            (zone.source.y < r.top? r.top : zone.source.y > (r.top + r.height) ? (r.top + r.height) : ((r.height / 2) + r.top))
+                            , 2)))
                     };
                 }
                 return null;
@@ -179,16 +183,20 @@
                     };
                     if (label.includes("top")) {
                         zone.top = 0;
+                        zone.source.y = rect.top;
                         zone.height = zone.source.y;
                     } else if (label.includes("bottom")) {
-                        zone.top = zone.source.y;
+                        zone.top = rect.top + rect.height;
+                        zone.source.y = rect.top + rect.height;
                         zone.height = window.innerHeight - zone.source.y;
                     }
                     if (label.includes("left")) {
                         zone.left = 0;
+                        zone.source.x = rect.left;
                         zone.width = zone.source.x;
                     } else if (label.includes("right")) {
-                        zone.left = zone.source.x;
+                        zone.left = rect.left + rect.width;
+                        zone.source.x = rect.left + rect.width;
                         zone.width = window.innerWidth - zone.source.x;
                     }
                     return zone;
@@ -231,6 +239,11 @@
         var CALCULATION_UTIL = {
 
             calculateFinalResultFromPrecisions: function (resultList, takeTheFirst, hasZoneInclusion) {
+                for(var i = 0; i < resultList.length; i ++){
+                    var innerText = resultList[i].elements[resultList[i].elements.length - 1].innerText;
+                    if(isVisible(resultList[i].elements[resultList[i].elements.length - 1]) && innerText && innerText.indexOf("FEUILLEBOIS") > -1)
+                        console.log(resultList[i]);
+                }
                 console.log(resultList);
                 var bestResult = null;
                 var bestZoneInclusion = null;
@@ -295,6 +308,40 @@
 
         var PARSE_DOM_UTIL = {
             DEFAULT_CLOSE_ENOUGH_DISTANCE: 250,
+            getAllVisibleElementsNextToTargets : function(nextToTargets){
+                var neighbours = [];
+                for (var i=0; i < nextToTargets.length; i++) {
+                    neighbours =
+                        neighbours.concat(
+                            PARSE_DOM_UTIL.allVisibleElementsNextTo(nextToTargets[i][nextToTargets[i].length - 1])
+                        );
+                }
+                return neighbours;
+            },
+            allVisibleElementsNextTo : function(nextTo){
+                var neighbours = [];
+                var all = document.getElementsByTagName("*");
+                for (var i=0; i < all.length; i++) {
+                    var e = all[i];
+                    if(isVisible(e) &&
+                        document.getDistanceBetweenElement(nextTo, e) <= PARSE_DOM_UTIL.DEFAULT_CLOSE_ENOUGH_DISTANCE,
+                        !PARSE_DOM_UTIL.isDescendant(e,nextTo) &&
+                        !PARSE_DOM_UTIL.isDescendant(nextTo,e)){
+                        neighbours.push([e]);
+                    }
+                }
+                return neighbours;
+            },
+            isDescendant : function(parent, child) {
+                var node = child.parentNode;
+                while (node != null) {
+                    if (node == parent) {
+                        return true;
+                    }
+                    node = node.parentNode;
+                }
+                return false;
+            },
             initNeighboursCandidatesArray: function (candidates) {
                 var neighbours = [];
                 if (candidates) {
@@ -603,6 +650,9 @@
                 nextToTargets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.NEXT_TO_ELEMENT);
                 nextToTargets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(nextToTargets, options.NEXT_TO_ELEMENT);
                 PARSE_DOM_UTIL.verifyAccuracy(nextToTargets, "[next to '" + options.NEXT_TO_ELEMENT + "']", 1);
+                if(!targets){
+                    targets = PARSE_DOM_UTIL.getAllVisibleElementsNextToTargets(nextToTargets);
+                }
             }
 
             resultList = targets;
@@ -663,6 +713,9 @@
         };
     }()
 );
+
+
+document.getElementByOptions(options);
 
 var options = {
     "ON_ELEMENT": "***",
