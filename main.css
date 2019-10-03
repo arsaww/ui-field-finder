@@ -1,3 +1,7 @@
+ul{list-style: none;padding: 0; margin: 0;display:block;}
+li{background-color:#fafafa;cursor:pointer;font-family:monospace;color:#8110b4;font-size:12px;margin:0 2px 0 0; padding: 8px 12px 4px 12px; text-indent: 0; list-style-type: 0;display:inline-block;border:1px solid #ddd;border-bottom:none;border-top-left-radius:10px;border-top-right-radius:10px;}
+li.active{cursor: default;background-color: #fff;}
+
 html,body{background-color:#f8f8f8;}
 section.main{position: relative;display: block;margin:40px auto;border:1px #ddd solid;width: 700px; padding: 30px 50px;background: #fff; min-height:700px;}
 h1{font-family: monospace;font-weight: normal;color:#8110b4;}
@@ -5,4 +9,6 @@ h1{font-family: monospace;font-weight: normal;color:#8110b4;}
 #autocomplete{border:1px #ddd solid;overflow-y: auto;max-height:300px;}
 #autocomplete span{cursor:pointer;display:block;font-family: monospace;font-size:13px;color:#00f;line-height:20px;vertical-align: middle;}
 #autocomplete span:hover{background-color:#E6FCFF;}
+#autocomplete > div{display: none;}
+#autocomplete > div.active{display: block;}
 #copy_btn {position:absolute;top:392px;right:50px;}
