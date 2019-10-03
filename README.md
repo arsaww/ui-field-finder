@@ -113,7 +113,7 @@
                     }
                     if (found) DRAW_UTIL.drawElement(finalResult.elements[finalResult.elements.length - 1], "#00FF00", "#00FF00AA");
                 }
-                DRAW_UTIL.drawElementsArray(choices, found ? "#ffee00" : "#ff0000", found ? "#ffee0033" : "ff000033" , "#C4B200");
+                DRAW_UTIL.drawElementsArray(choices, found ? "#ffee00" : "#ff0000", found ? "#ffee0033" : "ff000033", "#C4B200");
                 DRAW_UTIL.drawElementsArray(nextTo, "#e5c8ff", "#e5c8ff33", "#776689");
                 DRAW_UTIL.drawElementsArray(insideOf, "#d97200", "#d9720005", "#653200");
             },
@@ -165,7 +165,7 @@
                         distance: Math.round(Math.sqrt(Math.pow(zone.source.x -
                             (zone.source.x < r.left ? r.left : zone.source.x > (r.left + r.width) ? (r.left + r.width) : ((r.width / 2) + r.left))
                             , 2) + Math.pow(zone.source.y -
-                            (zone.source.y < r.top? r.top : zone.source.y > (r.top + r.height) ? (r.top + r.height) : ((r.height / 2) + r.top))
+                            (zone.source.y < r.top ? r.top : zone.source.y > (r.top + r.height) ? (r.top + r.height) : ((r.height / 2) + r.top))
                             , 2)))
                     };
                 }
@@ -181,23 +181,45 @@
                         height: window.innerHeight,
                         source: {x: (rect.left + (rect.width / 2)), y: (rect.top + (rect.height / 2))}
                     };
-                    if (label.includes("top")) {
+                    if (label == "strict-top") {
                         zone.top = 0;
-                        zone.source.y = rect.top;
-                        zone.height = zone.source.y;
-                    } else if (label.includes("bottom")) {
+                        zone.height = rect.top;
+                        zone.left = rect.left;
+                        zone.width = rect.width;
+                    } else if (label == "strict-bottom") {
                         zone.top = rect.top + rect.height;
-                        zone.source.y = rect.top + rect.height;
-                        zone.height = window.innerHeight - zone.source.y;
-                    }
-                    if (label.includes("left")) {
+                        zone.height = window.innerHeight - zone.top;
+                        zone.left = rect.left;
+                        zone.width = rect.width;
+                    } else if (label == "strict-left") {
                         zone.left = 0;
-                        zone.source.x = rect.left;
-                        zone.width = zone.source.x;
-                    } else if (label.includes("right")) {
+                        zone.width = rect.left;
+                        zone.top = rect.top;
+                        zone.height = rect.height;
+                    } else if (label == "strict-right") {
                         zone.left = rect.left + rect.width;
-                        zone.source.x = rect.left + rect.width;
-                        zone.width = window.innerWidth - zone.source.x;
+                        zone.width = window.innerWidth - zone.left;
+                        zone.top = rect.top;
+                        zone.height = rect.height;
+                    } else {
+                        if (label.includes("top")) {
+                            zone.top = 0;
+                            zone.source.y = rect.top;
+                            zone.height = zone.source.y;
+                        } else if (label.includes("bottom")) {
+                            zone.top = rect.top + rect.height;
+                            zone.source.y = rect.top + rect.height;
+                            zone.height = window.innerHeight - zone.source.y;
+                        }
+                        if (label.includes("left")) {
+                            zone.left = 0;
+                            zone.source.x = rect.left;
+                            zone.width = zone.source.x;
+                        } else if (label.includes("right")) {
+                            zone.left = rect.left + rect.width;
+                            zone.source.x = rect.left + rect.width;
+                            zone.width = window.innerWidth - zone.source.x;
+                        }
                     }
                     return zone;
                 }
@@ -239,12 +261,6 @@
         var CALCULATION_UTIL = {
 
             calculateFinalResultFromPrecisions: function (resultList, takeTheFirst, hasZoneInclusion) {
-                for(var i = 0; i < resultList.length; i ++){
-                    var innerText = resultList[i].elements[resultList[i].elements.length - 1].innerText;
-                    if(isVisible(resultList[i].elements[resultList[i].elements.length - 1]) && innerText && innerText.indexOf("FEUILLEBOIS") > -1)
-                        console.log(resultList[i]);
-                }
-                console.log(resultList);
                 var bestResult = null;
                 var bestZoneInclusion = null;
                 if (resultList && resultList.length > 0) {
@@ -308,9 +324,28 @@
 
         var PARSE_DOM_UTIL = {
             DEFAULT_CLOSE_ENOUGH_DISTANCE: 250,
-            getAllVisibleElementsNextToTargets : function(nextToTargets){
+            keepOnlyChildren: function (elements) {
+                if (elements && elements.length > 1) {
+                    var found = true;
+                    while (found) {
+                        found = false;
+                        for (var i = 0; i < elements.length; i++){
+                            for(var j = 0; j < elements.length; j++){
+                                if(i !== j && PARSE_DOM_UTIL.isDescendant(elements[j], elements[i])){
+                                    elements.splice(j, 1);
+                                    found = true;
+                                }
+                                if(found) break;
+                            }
+                            if(found) break;
+                        }
+                     }
+                }
+                return elements;
+            },
+            getAllVisibleElementsNextToTargets: function (nextToTargets) {
                 var neighbours = [];
-                for (var i=0; i < nextToTargets.length; i++) {
+                for (var i = 0; i < nextToTargets.length; i++) {
                     neighbours =
                         neighbours.concat(
                             PARSE_DOM_UTIL.allVisibleElementsNextTo(nextToTargets[i][nextToTargets[i].length - 1])
@@ -318,21 +353,21 @@
                 }
                 return neighbours;
             },
-            allVisibleElementsNextTo : function(nextTo){
+            allVisibleElementsNextTo: function (nextTo) {
                 var neighbours = [];
                 var all = document.getElementsByTagName("*");
-                for (var i=0; i < all.length; i++) {
+                for (var i = 0; i < all.length; i++) {
                     var e = all[i];
-                    if(isVisible(e) &&
-                        document.getDistanceBetweenElement(nextTo, e) <= PARSE_DOM_UTIL.DEFAULT_CLOSE_ENOUGH_DISTANCE,
-                        !PARSE_DOM_UTIL.isDescendant(e,nextTo) &&
-                        !PARSE_DOM_UTIL.isDescendant(nextTo,e)){
-                        neighbours.push([e]);
+                    if (isVisible(e) &&
+                    document.getDistanceBetweenElement(nextTo, e) <= PARSE_DOM_UTIL.DEFAULT_CLOSE_ENOUGH_DISTANCE &&
+                    !PARSE_DOM_UTIL.isDescendant(e, nextTo) &&
+                    !PARSE_DOM_UTIL.isDescendant(nextTo, e)) {
+                        neighbours.push(e);
                     }
                 }
-                return neighbours;
+                return PARSE_DOM_UTIL.initNeighboursCandidatesArray(PARSE_DOM_UTIL.keepOnlyChildren(neighbours));
             },
-            isDescendant : function(parent, child) {
+            isDescendant: function (parent, child) {
                 var node = child.parentNode;
                 while (node != null) {
                     if (node == parent) {
@@ -495,6 +530,7 @@
             },
             findLabelElements: function (label) {
                 var foundElements = getCandidatesByXPathLabel(label).concat(getInputsByVisualValue(label));
+                foundElements = PARSE_DOM_UTIL.keepOnlyChildren(foundElements);
                 if (label.includes(" ")) {
                     foundElements = foundElements.concat(getCandidatesByXPathLabel(label.replace(" ", "&nbsp;")));
                 }
@@ -646,11 +682,13 @@
             }
 
             /** 2.1 - FIND NEXT_TO_ELEMENT MATCHING **/
+            if(!options.NEXT_TO_ELEMENT && !options.ON_ELEMENT && options.ON_ELEMENT_POSITION)
+                options.NEXT_TO_ELEMENT = options.ON_ELEMENT_POSITION.value;
             if (options.NEXT_TO_ELEMENT) {
                 nextToTargets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.NEXT_TO_ELEMENT);
                 nextToTargets = PARSE_DOM_UTIL.filterNotEnoughNeighboursArray(nextToTargets, options.NEXT_TO_ELEMENT);
                 PARSE_DOM_UTIL.verifyAccuracy(nextToTargets, "[next to '" + options.NEXT_TO_ELEMENT + "']", 1);
-                if(!targets){
+                if (!targets) {
                     targets = PARSE_DOM_UTIL.getAllVisibleElementsNextToTargets(nextToTargets);
                 }
             }
@@ -708,7 +746,7 @@
                     insideOfElements,
                     finalResult ? true : false);
             }
-            if(!finalResult) throw "ERROR : No matching result found!";
+            if (!finalResult) throw "ERROR : No matching result found!";
             return finalResult;
         };
     }()
