@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta charset="UTF-8" />
     <script src="codemirror.js"></script>
     <link rel="stylesheet" href="codemirror.css">
     <link rel="stylesheet" href="main.css">
@@ -12,109 +13,133 @@
     <div id="feature"></div>
     <br/>
     <h1># Autocomplete syntax helper [CTRL+SPACE]</h1>
+    <ul id="categories"></ul>
     <div id="autocomplete"></div>
     <textarea id="copy" style="display: none;"></textarea>
     <button id="copy_btn" onclick="copy()">cc</button>
 </section>
 <script>
 
-        var CURRENT_LINE_NUMBER = null;
-        var CURRENT_LINE_TEXT = null;
+    var CURRENT_LINE_NUMBER = null;
+    var CURRENT_LINE_TEXT = null;
 
-        var copy = function(){
-            document.getElementById('copy').style.display = 'block';
-            var lines = cm.getValue().split('\n');
-            var finalText = "";
-            for(var i = 0;i < lines.length;i++){
-                if(i === 0){
-                    finalText += "Given " + lines[i] + "\n";
-                }else if (i === 1){
-                    finalText += "When " + lines[i] + "\n";
-                }else if (i === 2){
-                    finalText += "Then " + lines[i] + "\n";
-                }else{
-                    finalText += "And " + lines[i] + "\n";
-                }
+    var copy = function () {
+        document.getElementById('copy').style.display = 'block';
+        var lines = cm.getValue().split('\n');
+        var finalText = "";
+        for (var i = 0; i < lines.length; i++) {
+            if (i === 0) {
+                finalText += "Given " + lines[i] + "\n";
+            } else if (i === 1) {
+                finalText += "When " + lines[i] + "\n";
+            } else if (i === 2) {
+                finalText += "Then " + lines[i] + "\n";
+            } else {
+                finalText += "And " + lines[i] + "\n";
             }
-            document.getElementById('copy').value = finalText;
-            document.getElementById('copy').select();
-            document.execCommand("copy");
-            document.getElementById('copy').style.display = 'none';
-        };
-
-        var replaceLine = function(e){
-            var doc = cm.getDoc();
-            var start = {line: CURRENT_LINE_NUMBER, ch: 0};
-            var end = {line: CURRENT_LINE_NUMBER, ch: CURRENT_LINE_TEXT.length};
-            doc.replaceRange(e.innerText, start,end);
-            document.getElementById("autocomplete").innerHTML = "";
-        };
-
-        var saveLine = function(){
-            var doc = cm.getDoc();
-            var cursor = doc.getCursor();
-            CURRENT_LINE_NUMBER = cursor.line;
-            CURRENT_LINE_TEXT = doc.getLine(cursor.line);
-        };
-
-        function formatSentences(sentences){
-            for(var i = 0; i < sentences.length; i++){
-                sentences[i] = sentences[i].toLowerCase();
-            }
-            return sentences;
         }
+        document.getElementById('copy').value = finalText;
+        document.getElementById('copy').select();
+        document.execCommand("copy");
+        document.getElementById('copy').style.display = 'none';
+    };
 
-        var getMatchingSentences = function(){
-            var wordArray = getLineTextArrayWithoutValues(CURRENT_LINE_TEXT);
-            var matchingSentences = [];
-            var formattedSentences = formatSentences(ALLOWED_SENTENCES.slice(0));
-            if(wordArray.length == 0 || (wordArray.length == 1 && wordArray[0] === "")){
-                matchingSentences = ALLOWED_SENTENCES.slice(0);
-            }else{
-                for(var i = 0 ; i < ALLOWED_SENTENCES.length; i++){
-                    var newWordArray = getLineTextArrayWithoutValues(formattedSentences[i]);
-                    var matchingSentence = true;
-                    for(var j = 0; j < wordArray.length; j++){
-                        if(!newWordArray.includes(wordArray[j].toLowerCase())){
-                            matchingSentence = false;
-                            break;
-                        }
-                    }
-                    if(matchingSentence){
-                        matchingSentences.push(ALLOWED_SENTENCES[i]);
-                    }
-                }
+    var replaceLine = function (e) {
+        var doc = cm.getDoc();
+        var start = {line: CURRENT_LINE_NUMBER, ch: 0};
+        var end = {line: CURRENT_LINE_NUMBER, ch: CURRENT_LINE_TEXT.length};
+        doc.replaceRange(e, start, end);
+        autoComplete();
+    };
+
+    var saveLine = function () {
+        var doc = cm.getDoc();
+        var cursor = doc.getCursor();
+        CURRENT_LINE_NUMBER = cursor.line;
+        CURRENT_LINE_TEXT = doc.getLine(cursor.line);
+    };
+
+    var getMatchingSentences = function () {
+        var mySentence = getLineTextWithoutValues(CURRENT_LINE_TEXT).trim();
+        var matchingSentences = [];
+        for (var i = 0; i < NEW_SENTENCES.main.length; i++) {
+            var newSentence = getLineTextWithoutValues(NEW_SENTENCES.main[i].content).trim();
+            if(mySentence === ""){
+                matchingSentences.push(NEW_SENTENCES.main[i]);
+                //else index of options newSentence
+            }else if(newSentence.toLowerCase().indexOf(mySentence.toLowerCase()) > -1){
+                matchingSentences.push(NEW_SENTENCES.main[i]);
             }
-            return matchingSentences;
-        };
+        }
+        return matchingSentences;
+    };
 
-        var autoComplete = function(){
-            saveLine();
-            var sentences = getMatchingSentences();
-            var content = "";
-            for(var i = 0 ; i < sentences.length; i ++){
-                content += "<span onclick='replaceLine(this)'>" + sentences[i] + "</span>";
+    var autoComplete = function () {
+        clear();
+        saveLine();
+        var sentences = getMatchingSentences();
+        for (var i = 0; i < sentences.length; i++) {
+            addAutoCompleteSentence(sentences[i], i === 0);
+        }
+    };
+
+    var addAutoCompleteSentence = function (sentence, visible) {
+        if(document.getElementById("category-"+sentence.category) === null){
+            createCategory(sentence,visible);
+        }
+        if(document.getElementById("autocomplete-"+sentence.category) === null){
+            createAutocomplete(sentence,visible);
+        }
+        createClickableSentence(sentence);
+    };
+
+
+    var createClickableSentence = function(sentence){
+        var node = document.createElement("span");
+        node.onclick = function(){replaceLine("" + sentence.content);};
+        var textNode = document.createTextNode(sentence.content);
+        node.appendChild(textNode);
+        document.getElementById("autocomplete-" + sentence.category).appendChild(node);
+    };
+
+    var createAutocomplete= function(sentence, visible){
+        var node = document.createElement("div");
+        node.id = "autocomplete-"+sentence.category;
+        node.className = visible ? "active" : "";
+        document.getElementById("autocomplete").appendChild(node);
+    };
+
+    var createCategory = function(sentence, visible){
+        var node = document.createElement("LI");
+        node.id = "category-"+sentence.category;
+        node.className = visible ? "active" : "";
+        var textNode = document.createTextNode(sentence.category);
+        node.appendChild(textNode);
+        document.getElementById("categories").appendChild(node);
+    };
+
+    var clear = function () {
+        document.getElementById("categories").innerHTML = "";
+        document.getElementById("autocomplete").innerHTML = "";
+    };
+
+    var getLineTextWithoutValues = function (lineText) {
+        lineText = lineText.replace(/(\".*?\")/g, "");
+        lineText = lineText.replace(/ +/g, " ");
+        lineText = lineText.replace(/^ /, "");
+        lineText = lineText.replace(/ $/, "");
+        return lineText;
+    };
+
+    var cm = CodeMirror(document.getElementById("feature"), {
+            value: "",
+            mode: "javascript",
+            lineNumbers: true,
+            extraKeys: {
+                "Ctrl-Space": autoComplete
             }
-            document.getElementById('autocomplete').innerHTML = content;
-        };
-
-        var getLineTextArrayWithoutValues = function(lineText){
-            lineText = lineText.replace(/(\".*?\")/g,"");
-            lineText = lineText.replace(/ +/g, " ");
-            lineText = lineText.replace(/^ /, "");
-            lineText = lineText.replace(/ $/, "");
-            return lineText.split(/\ /g);
-        };
-
-        var cm = CodeMirror(document.getElementById("feature"), {
-                value: "",
-                mode: "javascript",
-                lineNumbers: true,
-                extraKeys: {
-                    "Ctrl-Space": autoComplete
-                }
-            }
-        );
+        }
+    );
 
 </script>
 </body>
