@@ -98,24 +98,22 @@
                     i.innerHTML = "Target is " + coverage + "% covered by zone <br /> There is " + distance + "px distance from the zone source";
                 }
             },
-            drawAlgorithmSelection: function (choices, nextTo, finalResult, insideOf, found) {
-                if (finalResult) {
-                    if (finalResult.zoneIncludes && finalResult.zoneIncludes.length > 0) {
-                        for (var i = 0; i < finalResult.zoneIncludes.length; i++) {
-                            var zi = finalResult.zoneIncludes[i];
-                            if (zi.element) {
-                                DRAW_UTIL.drawZone(zi.zone, "#dfb5ff", found ? zi.coverage : null, found ? zi.distance : null);
-                                DRAW_UTIL.drawElement(zi.element, "#dfb5ff", "#dfb5ffAA");
-                            } else {
-                                DRAW_UTIL.drawZone(zi.zone, "#0000FF", found ? zi.coverage : null, found ? zi.distance : null);
-                            }
-                        }
+            drawAlgorithmSelection: function (targets, nextToTargets, finalResult, resultList, insideOfElements, pageZone, elementZones) {
+                console.log("START ZONE");
+                console.log(elementZones);
+                console.log(pageZone);
+                console.log("END ZONE");
+                if (elementZones) {
+                    for (var i = 0; i < elementZones.length; i++) {
+                            DRAW_UTIL.drawZone(elementZones[i], "#dfb5ff", null,  null);
                     }
-                    if (found) DRAW_UTIL.drawElement(finalResult.elements[finalResult.elements.length - 1], "#00FF00", "#00FF00AA");
                 }
-                DRAW_UTIL.drawElementsArray(choices, found ? "#ffee00" : "#ff0000", found ? "#ffee0033" : "ff000033", "#C4B200");
-                DRAW_UTIL.drawElementsArray(nextTo, "#e5c8ff", "#e5c8ff33", "#776689");
-                DRAW_UTIL.drawElementsArray(insideOf, "#d97200", "#d9720005", "#653200");
+                if (pageZone) DRAW_UTIL.drawZone(pageZone, "#0000FF", null, null);
+                if (targets) DRAW_UTIL.drawElementsArray(targets, "#ffee00", "#ffee0033", "#C4B200");
+                if (nextToTargets) DRAW_UTIL.drawElementsArray(nextToTargets, "#e5c8ff", "#e5c8ff33", "#776689");
+                if (insideOfElements) DRAW_UTIL.drawElementsArray(insideOfElements, "#d97200", "#d9720005", "#653200");
+                if (finalResult) DRAW_UTIL.drawElement(finalResult.elements[finalResult.elements.length - 1], "#00FF00", "#00FF00AA");
+
             },
             drawErrorNoFinalResult: function (resultList) {
                 if (resultList && resultList.length > 0) {
@@ -141,12 +139,26 @@
                 }
                 return result;
             },
+            getBestZoneInclusion: function (z1, z2) {
+                if (z1.coverage > z2.coverage) {
+                    return z1;
+                } else if (z1.coverage === z2.coverage && z1.distance > z2.distance) {
+                    return z1;
+                }
+                return z2;
+            },
             addZoneCoverage: function (arr, zone, elementZone) {
                 if (arr && arr.length > 0 && zone) {
                     for (var i = 0; i < arr.length; i++) {
-                        arr[i].zoneIncludes.push(
-                            ZONE_UTIL.getSurfaceSurfaceInsideZone(arr[i].elements[arr[i].elements.length - 1], zone, elementZone)
-                        );
+                        var e = ZONE_UTIL.getSurfaceSurfaceInsideZone(arr[i].elements[arr[i].elements.length - 1], zone, elementZone);
+                        for (var j = 0; j < arr[i].zoneIncludes.length; j++) {
+                            if (arr[i].zoneIncludes[j].element) {
+                                arr[i].zoneIncludes[j] = ZONE_UTIL.getBestZoneInclusion(arr[i].zoneIncludes[j], e);
+                                e = null;
+                                //console.log(arr[i].zoneIncludes[j]);
+                            }
+                        }
+                        if (e) arr[i].zoneIncludes.push(e);
                     }
                 }
                 return arr;
@@ -181,22 +193,22 @@
                         height: window.innerHeight,
                         source: {x: (rect.left + (rect.width / 2)), y: (rect.top + (rect.height / 2))}
                     };
-                    if (label == "strict-top") {
+                    if (label === "strict-top") {
                         zone.top = 0;
                         zone.height = rect.top;
                         zone.left = rect.left;
                         zone.width = rect.width;
-                    } else if (label == "strict-bottom") {
+                    } else if (label === "strict-bottom") {
                         zone.top = rect.top + rect.height;
                         zone.height = window.innerHeight - zone.top;
                         zone.left = rect.left;
                         zone.width = rect.width;
-                    } else if (label == "strict-left") {
+                    } else if (label === "strict-left") {
                         zone.left = 0;
                         zone.width = rect.left;
                         zone.top = rect.top;
                         zone.height = rect.height;
-                    } else if (label == "strict-right") {
+                    } else if (label === "strict-right") {
                         zone.left = rect.left + rect.width;
                         zone.width = window.innerWidth - zone.left;
                         zone.top = rect.top;
@@ -329,17 +341,17 @@
                     var found = true;
                     while (found) {
                         found = false;
-                        for (var i = 0; i < elements.length; i++){
-                            for(var j = 0; j < elements.length; j++){
-                                if(i !== j && PARSE_DOM_UTIL.isDescendant(elements[j], elements[i])){
+                        for (var i = 0; i < elements.length; i++) {
+                            for (var j = 0; j < elements.length; j++) {
+                                if (i !== j && PARSE_DOM_UTIL.isDescendant(elements[j], elements[i])) {
                                     elements.splice(j, 1);
                                     found = true;
                                 }
-                                if(found) break;
+                                if (found) break;
                             }
-                            if(found) break;
+                            if (found) break;
                         }
-                     }
+                    }
                 }
                 return elements;
             },
@@ -359,9 +371,9 @@
                 for (var i = 0; i < all.length; i++) {
                     var e = all[i];
                     if (isVisible(e) &&
-                    document.getDistanceBetweenElement(nextTo, e) <= PARSE_DOM_UTIL.DEFAULT_CLOSE_ENOUGH_DISTANCE &&
-                    !PARSE_DOM_UTIL.isDescendant(e, nextTo) &&
-                    !PARSE_DOM_UTIL.isDescendant(nextTo, e)) {
+                        document.getDistanceBetweenElement(nextTo, e) <= PARSE_DOM_UTIL.DEFAULT_CLOSE_ENOUGH_DISTANCE &&
+                        !PARSE_DOM_UTIL.isDescendant(e, nextTo) &&
+                        !PARSE_DOM_UTIL.isDescendant(nextTo, e)) {
                         neighbours.push(e);
                     }
                 }
@@ -536,12 +548,13 @@
                 }
                 return foundElements;
             },
-            addElementsZoneCoverage: function (resultList, linkedElements, position) {
+            addElementsZoneCoverage: function (resultList, linkedElements, position, elementZonesToDraw) {
                 if (linkedElements && linkedElements.length > 0 && position) {
                     for (var i = 0; i < linkedElements.length; i++) {
                         var target = linkedElements[i][linkedElements[i].length - 1];
                         var zone = ZONE_UTIL.getElementZone(target, position);
                         ZONE_UTIL.addZoneCoverage(resultList, zone, target);
+                        elementZonesToDraw.push(zone);
                     }
                 }
             },
@@ -672,7 +685,8 @@
         };
 
         document.getElementByOptions = function (options) {
-            var targets, nextToTargets, insideOfElements, resultList, finalResult;
+            var targets, nextToTargets, insideOfElements, resultList, finalResult, pageZone;
+            var elementZones = [];
 
             /** 1 - FIND ON_ELEMENT MATCHING **/
             if (options.ON_ELEMENT) {
@@ -682,7 +696,7 @@
             }
 
             /** 2.1 - FIND NEXT_TO_ELEMENT MATCHING **/
-            if(!options.NEXT_TO_ELEMENT && !options.ON_ELEMENT && options.ON_ELEMENT_POSITION)
+            if (!options.NEXT_TO_ELEMENT && !options.ON_ELEMENT && options.ON_ELEMENT_POSITION)
                 options.NEXT_TO_ELEMENT = options.ON_ELEMENT_POSITION.value;
             if (options.NEXT_TO_ELEMENT) {
                 nextToTargets = PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.NEXT_TO_ELEMENT);
@@ -722,7 +736,7 @@
 
             /** 5 - FIND ON_PAGE_POSITION ZONE MATCHING **/
             if (options.ON_PAGE_POSITION) {
-                var pageZone = ZONE_UTIL.getPageZone(options.ON_PAGE_POSITION);
+                pageZone = ZONE_UTIL.getPageZone(options.ON_PAGE_POSITION);
                 ZONE_UTIL.addZoneCoverage(resultList, pageZone);
             }
 
@@ -730,7 +744,8 @@
             if (options.ON_ELEMENT_POSITION && options.ON_ELEMENT_POSITION.value && options.ON_ELEMENT_POSITION.position) {
                 PARSE_DOM_UTIL.addElementsZoneCoverage(resultList,
                     PARSE_DOM_UTIL.findLinkedLabelSelectorElements(options.ON_ELEMENT_POSITION.value),
-                    options.ON_ELEMENT_POSITION.position);
+                    options.ON_ELEMENT_POSITION.position,
+                    elementZones);
                 //PARSE_DOM_UTIL.verifyAccuracy(nextToTargets, "[next to '" + options.NEXT_TO_ELEMENT + "']");
             }
             /** 7 - CALCULATE FINAL RESULT MATCHING ZONE **/
@@ -740,11 +755,7 @@
 
             /** 8 - DRAW ALGORITHM RESULTS **/
             if (options.SHOW_DETAILS) {
-                DRAW_UTIL.drawAlgorithmSelection(targets, nextToTargets,
-                    finalResult ? finalResult :
-                        resultList && resultList.length > 0 ? resultList[0][resultList[0].length - 1] : null,
-                    insideOfElements,
-                    finalResult ? true : false);
+                DRAW_UTIL.drawAlgorithmSelection(targets, nextToTargets, finalResult, resultList, insideOfElements, pageZone, elementZones);
             }
             if (!finalResult) throw "ERROR : No matching result found!";
             return finalResult;
@@ -752,90 +763,12 @@
     }()
 );
 
-
-document.getElementByOptions(options);
-
 var options = {
-    "ON_ELEMENT": "***",
-    //"NEXT_TO_ELEMENT": "People",
-    //"INSIDE_OF_ELEMENT": "|#mw-panel",
-    //"ON_ELEMENT_POSITION": {value: "***", position: "right"},
-    //"ON_PAGE_POSITION": "left",
+    "ON_ELEMENT": "e",
+    "NEXT_TO_ELEMENT": null,
+    "INSIDE_OF_ELEMENT": null,
+    "ON_ELEMENT_POSITION": {value: "Source", position: "strict-bottom"},
+    "ON_PAGE_POSITION": null,
     "SHOW_DETAILS": true
 };
-
-document.getElementByOptions(options);
-
-/** NEW SENTENCES **/
-
-var NEW_SENTENCES =
-    {
-        main: [
-            {
-                content: 'Open the url "www.google.com"',
-                cursorRequired : '1',
-                addition: [
-                    {key: "IS_WORKING", range: "1,2,3,4", cursor: "5"},
-                    {key: "RETRY_INTERVAL", range: "1,2,3,4,5", cursor: "6"},
-                    {key: "TIMEOUT", range: "1.2,3,4,5,6", cursor: "7"},
-                    {key: "SHOW_DETAILS", range: "1,2,3,4,5,6,7", cursor:"8"}
-                ]
-            },
-            {
-                content: 'Set value "anyValue"',
-                cursorRequired : '2',
-                addition: [
-                    {key: "ON_LABEL", range: "1", cursor : "2"},
-                    {key: "ON_ELEMENT", range: "1", cursor : "2"},
-                    {key: "NEXT_TO_LABEL", range: "2", cursor : "2"},
-                    {key: "NEXT_TO_ELEMENT", range: "2", cursor : "2"},
-                    {key: "ON_PAGE_POSITION", range: "2,3", cursor : "3"},
-                    {key: "ON_LABEL_POSITION", range: "2,3", cursor : "4"},
-                    {key: "ON_ELEMENT_POSITION", range: "2,3", cursor : "4"},
-                    {key: "IS_WORKING", range: "2,3,4", cursor: "5"},
-                    {key: "RETRY_INTERVAL", range: "2,3,4,5", cursor: "6"},
-                    {key: "TIMEOUT", range: "2,3,4,5,6", cursor: "7"},
-                    {key: "SHOW_DETAILS", range: "2,3,4,5,6,7", cursor:"8"}
-                ]
-            },
-            {content: 'Verify value "anyValue"'},
-            {content: 'Verify existence "true"'},
-            {content: 'Click'},
-            {content: 'Right-Click'},
-            {content: 'Double-Click'}
-        ],
-        secondary: [
-            {key: 'ON_LABEL', value: 'on "parentLabel;target"', repeat: false, tags: ["Global"]},
-            {key: 'ON_ELEMENT', value: 'on "div.main:nth-of-type(1)" element', repeat: false, tags: ["Global"]},
-            {key: 'NEXT_TO_LABEL', value: 'next to "parentLabel;target"', repeat: false, tags: ["Global"]},
-            {key: 'NEXT_TO_ELEMENT', value: 'next to "div.main:nth-of-type(1)" element', repeat: false, tags: ["Global"]},
-            {key: 'ON_PAGE_POSITION', value: 'on the "top-left" of the page', repeat: false, tags: ["Global"]},
-            {key: 'ON_LABEL_POSITION', value: 'on the "top-left" of "parentLabel;target"', repeat: true, tags: ["Global"]},
-            {key: 'ON_ELEMENT_POSITION', value: 'on the "top-left" of "div.main:nth-of-type(1)" element', repeat: true, tags: ["Global"]},
-            {key: 'IS_WORKING', value: 'and it works "true"', repeat: false, tags: ["Global"]},
-            {key: 'RETRY_INTERVAL', value: 'with "10" retry max within "100"ms interval', repeat: false, tags: ["Global"]},
-            {key: 'TIMEOUT', value: 'and timeout after "10000"ms', repeat: false, tags: ["Global"]},
-            {key: 'SHOW_DETAILS', value: 'and show details "details1"', repeat: false, tags: ["Global"]}
-        ]
-    };
-
-
-/*
-init.put(ON_ELEMENT, "on \"([^\"]*)\"");
-        init.put(NEXT_TO_ELEMENT, "next to \"([^\"]*)\"");
-        init.put(INSIDE_OF_ELEMENT, "inside of \"([^\"]*)\"");
-        init.put(ON_PAGE_POSITION, "on the \"([^\"]*)\" of the page");
-        init.put(ON_ELEMENT_POSITION, "on the \"([^\"]*)\" of \"([^\"]*)\"");
-        init.put(SHOW_DETAILS, "and show algo details \"([^\"]*)\"");
-        
-init.put(IS_WORKING, "and it succeed \"([^\"]*)\"");
-        init.put(RETRY_INTERVAL, "with max \"([^\"]*)\" retry within \"[^\"]*\"ms interval");
-        init.put(TIMEOUT, "with \"([^\"]*)\"ms timeout");
-        init.put(SHOW_DETAILS, "and show algo details \"([^\"]*)\"");        
-
-*/
-var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
-        
-
-
-```
+document.getElementByOptions(options);```
