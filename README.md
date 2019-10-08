@@ -834,6 +834,8 @@ init.put(IS_WORKING, "and it succeed \"([^\"]*)\"");
         init.put(SHOW_DETAILS, "and show algo details \"([^\"]*)\"");        
 
 */
+var INPUT_FIELD_CSS_QUERY_SELECTOR = "select,textarea,input:not([type]),input[type=text],input[type=number],input[type=password],input[type=date],input[type=color],input[type=file],input[type=email],input[type=url],input[type=week],input[type=time],input[type=search],input[type=range],input[type=month],input[type=datetime-local]";
+        
 
 
 ```
